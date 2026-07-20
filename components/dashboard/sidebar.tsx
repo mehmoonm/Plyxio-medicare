@@ -12,7 +12,9 @@ import {
   FileText,
   Package,
   UserCheck,
+  Settings,
 } from 'lucide-react';
+import { useSettings } from '@/lib/settings-context';
 
 const adminMenuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -22,6 +24,7 @@ const adminMenuItems = [
   { href: '/dashboard/billing', label: 'Billing', icon: FileText },
   { href: '/dashboard/inventory', label: 'Inventory', icon: Package },
   { href: '/dashboard/staff', label: 'Staff', icon: UserCheck },
+  { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ];
 
 const doctorMenuItems = [
@@ -45,6 +48,7 @@ const staffMenuItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const { user } = useAuth();
+  const { settings } = useSettings();
 
   let menuItems = [];
   if (user?.role === 'admin') menuItems = adminMenuItems;
@@ -57,13 +61,17 @@ export function Sidebar() {
       {/* Logo */}
       <div className="p-6 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-600 to-cyan-500 flex items-center justify-center">
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-            </svg>
-          </div>
+          {settings.logo ? (
+            <img src={settings.logo} alt="Logo" className="w-10 h-10 rounded-lg object-contain" />
+          ) : (
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-600 to-cyan-500 flex items-center justify-center">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+              </svg>
+            </div>
+          )}
           <div>
-            <h1 className="text-lg font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">MediCare</h1>
+            <h1 className="text-lg font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">{settings.hospitalName}</h1>
             <p className="text-xs text-gray-400">Hospital System</p>
           </div>
         </div>

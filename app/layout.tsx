@@ -2,6 +2,7 @@ import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { AuthProvider } from '@/lib/auth-context'
+import { SettingsProvider } from '@/lib/settings-context'
 
 export const metadata: Metadata = {
   title: 'v0 App',
@@ -42,9 +43,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <SettingsProvider>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </SettingsProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
