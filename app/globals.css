@@ -48,17 +48,17 @@
 :root {
   color-scheme: light;
   --background: linear-gradient(135deg, #0f0c29 0%, #1a1a3e 50%, #16213e 100%);
-  --foreground: #f1f5f9;
+  --foreground: #1e293b;
   --card: rgba(255, 255, 255, 0.1);
-  --card-foreground: #f1f5f9;
+  --card-foreground: #1e293b;
   --popover: rgba(255, 255, 255, 0.05);
-  --popover-foreground: #ffffff;
+  --popover-foreground: #1e293b;
   --primary: #6366f1;
   --primary-foreground: #ffffff;
   --secondary: rgba(99, 102, 241, 0.15);
   --secondary-foreground: #6366f1;
   --muted: rgba(255, 255, 255, 0.08);
-  --muted-foreground: #cbd5e1;
+  --muted-foreground: #64748b;
   --accent: #06b6d4;
   --accent-foreground: #ffffff;
   --destructive: #ef4444;
@@ -84,11 +84,11 @@
 .dark {
   color-scheme: dark;
   --background: linear-gradient(135deg, #0f0c29 0%, #1a1a3e 50%, #16213e 100%);
-  --foreground: #f1f5f9;
+  --foreground: #1e293b;
   --card: rgba(255, 255, 255, 0.1);
-  --card-foreground: #f1f5f9;
+  --card-foreground: #1e293b;
   --popover: rgba(255, 255, 255, 0.05);
-  --popover-foreground: #f1f5f9;
+  --popover-foreground: #1e293b;
   --primary: #6366f1;
   --primary-foreground: #ffffff;
   --secondary: rgba(99, 102, 241, 0.15);
@@ -120,11 +120,11 @@
   :root:not(.light) {
     color-scheme: dark;
     --background: linear-gradient(135deg, #0f0c29 0%, #1a1a3e 50%, #16213e 100%);
-    --foreground: #ffffff;
+    --foreground: #1e293b;
     --card: rgba(255, 255, 255, 0.1);
-    --card-foreground: #ffffff;
+    --card-foreground: #1e293b;
   --popover: rgba(255, 255, 255, 0.05);
-  --popover-foreground: #f1f5f9;
+  --popover-foreground: #1e293b;
   --primary: #6366f1;
   --primary-foreground: #ffffff;
     --secondary: rgba(99, 102, 241, 0.15);
