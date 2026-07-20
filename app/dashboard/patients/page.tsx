@@ -93,20 +93,21 @@ export default function PatientsPage() {
                       </span>
                     </td>
                     <td className="py-4 px-6">
-                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <div className="flex items-center gap-2">
                         <Link href={`/dashboard/patients/${patient.id}`}>
-                          <button className="p-2 rounded-lg bg-cyan-600/30 hover:bg-cyan-600/50 border border-cyan-400/50 text-cyan-300 transition-all duration-300">
+                          <button className="p-2 rounded-lg bg-cyan-600/30 hover:bg-cyan-600/50 border border-cyan-400/50 text-cyan-300 transition-all duration-300" title="View">
                             <Eye className="w-4 h-4" />
                           </button>
                         </Link>
                         <Link href={`/dashboard/patients/${patient.id}/edit`}>
-                          <button className="p-2 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-400/50 text-indigo-300 transition-all duration-300">
+                          <button className="p-2 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-400/50 text-indigo-300 transition-all duration-300" title="Edit">
                             <Edit className="w-4 h-4" />
                           </button>
                         </Link>
                         <button
                           onClick={() => handleDelete(patient.id)}
                           className="p-2 rounded-lg bg-red-600/30 hover:bg-red-600/50 border border-red-400/50 text-red-300 transition-all duration-300"
+                          title="Delete"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
