@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { useSettings } from '@/lib/settings-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Upload, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Upload, RotateCcw, Moon, Sun, Monitor } from 'lucide-react';
 import Link from 'next/link';
 
 export default function SettingsPage() {
@@ -13,6 +13,7 @@ export default function SettingsPage() {
   const [accentColor, setAccentColor] = useState(settings.accentColor);
   const [hospitalName, setHospitalName] = useState(settings.hospitalName);
   const [logo, setLogo] = useState<string | null>(settings.logo);
+  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>(settings.theme);
   const [saved, setSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -22,6 +23,7 @@ export default function SettingsPage() {
       accentColor,
       hospitalName,
       logo,
+      theme,
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
@@ -45,6 +47,7 @@ export default function SettingsPage() {
     setAccentColor('#06b6d4');
     setHospitalName('MediCare');
     setLogo(null);
+    setTheme('dark');
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
@@ -87,6 +90,50 @@ export default function SettingsPage() {
                 placeholder="Enter hospital name"
                 className="glass-input w-full px-4 py-3 rounded-lg text-white"
               />
+            </div>
+          </div>
+
+          {/* Theme Mode */}
+          <div className="glass-card rounded-2xl p-6 space-y-4">
+            <h2 className="text-xl font-bold text-white">Appearance</h2>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-300">Theme Mode</label>
+              <div className="grid grid-cols-3 gap-3">
+                <button
+                  onClick={() => setTheme('light')}
+                  className={`flex flex-col items-center gap-2 p-4 rounded-lg transition-all ${
+                    theme === 'light'
+                      ? 'bg-indigo-600/30 border-2 border-indigo-500/50'
+                      : 'bg-white/5 border border-slate-700/50 hover:bg-white/10'
+                  }`}
+                >
+                  <Sun className="w-6 h-6" />
+                  <span className="text-xs font-semibold">Light</span>
+                </button>
+                <button
+                  onClick={() => setTheme('dark')}
+                  className={`flex flex-col items-center gap-2 p-4 rounded-lg transition-all ${
+                    theme === 'dark'
+                      ? 'bg-indigo-600/30 border-2 border-indigo-500/50'
+                      : 'bg-white/5 border border-slate-700/50 hover:bg-white/10'
+                  }`}
+                >
+                  <Moon className="w-6 h-6" />
+                  <span className="text-xs font-semibold">Dark</span>
+                </button>
+                <button
+                  onClick={() => setTheme('system')}
+                  className={`flex flex-col items-center gap-2 p-4 rounded-lg transition-all ${
+                    theme === 'system'
+                      ? 'bg-indigo-600/30 border-2 border-indigo-500/50'
+                      : 'bg-white/5 border border-slate-700/50 hover:bg-white/10'
+                  }`}
+                >
+                  <Monitor className="w-6 h-6" />
+                  <span className="text-xs font-semibold">System</span>
+                </button>
+              </div>
+              <p className="text-xs text-slate-400">System uses your device settings to automatically switch between light and dark mode</p>
             </div>
           </div>
 

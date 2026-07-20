@@ -153,12 +153,61 @@
   }
 }
 
+/* Light mode styles */
+.light {
+  --background: linear-gradient(135deg, #f8fafc 0%, #f0f4f8 50%, #e8ecf1 100%);
+  --foreground: #1e293b;
+  --card: rgba(30, 41, 59, 0.08);
+  --card-foreground: #1e293b;
+  --popover: rgba(30, 41, 59, 0.08);
+  --popover-foreground: #1e293b;
+  --primary: #6366f1;
+  --primary-foreground: #ffffff;
+  --secondary: rgba(99, 102, 241, 0.1);
+  --secondary-foreground: #6366f1;
+  --muted: rgba(30, 41, 59, 0.08);
+  --muted-foreground: #64748b;
+  --accent: #06b6d4;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --border: rgba(30, 41, 59, 0.1);
+  --input: rgba(30, 41, 59, 0.08);
+  --ring: #6366f1;
+  --sidebar: rgba(241, 245, 249, 0.9);
+  --sidebar-foreground: #1e293b;
+  --sidebar-primary: #6366f1;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(99, 102, 241, 0.1);
+  --sidebar-accent-foreground: #6366f1;
+  --sidebar-border: rgba(30, 41, 59, 0.1);
+  --sidebar-ring: #6366f1;
+}
+
+.light .glass {
+  @apply backdrop-blur-xl bg-white/30 border border-slate-300/50;
+}
+
+.light .glass-dark {
+  @apply backdrop-blur-xl bg-white/40 border border-slate-300/50;
+}
+
+.light .glass-card {
+  @apply backdrop-blur-2xl bg-gradient-to-br from-white/40 to-white/20 border border-slate-300/50 shadow-2xl;
+}
+
+.light .glass-input {
+  @apply backdrop-blur-lg bg-white/30 border border-slate-300/50 text-slate-900 placeholder-slate-500 focus:bg-white/40 focus:border-slate-400/70 transition-all duration-300;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   html {
     @apply bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950;
+  }
+  html.light {
+    @apply bg-gradient-to-br from-slate-50 via-slate-100 to-slate-50;
   }
   body {
     @apply bg-transparent text-foreground;

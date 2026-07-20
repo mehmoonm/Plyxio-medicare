@@ -7,6 +7,7 @@ export interface BrandSettings {
   accentColor: string;
   logo: string | null;
   hospitalName: string;
+  theme: 'light' | 'dark' | 'system';
 }
 
 const defaultSettings: BrandSettings = {
@@ -14,6 +15,7 @@ const defaultSettings: BrandSettings = {
   accentColor: '#06b6d4',
   logo: null,
   hospitalName: 'MediCare',
+  theme: 'dark',
 };
 
 interface SettingsContextType {
@@ -32,13 +34,28 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     const savedSettings = localStorage.getItem('hospitalSettings');
     if (savedSettings) {
       try {
-        setSettings(JSON.parse(savedSettings));
+        const parsed = JSON.parse(savedSettings);
+        setSettings(parsed);
+        applyTheme(parsed.theme || 'dark');
       } catch (error) {
         console.error('Failed to load settings:', error);
       }
+    } else {
+      applyTheme('dark');
     }
     setMounted(true);
   }, []);
+
+  const applyTheme = (theme: 'light' | 'dark' | 'system') => {
+    const html = document.documentElement;
+    
+    if (theme === 'system') {
+      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      html.classList.toggle('dark', isDark);
+    } else {
+      html.classList.toggle('dark', theme === 'dark');
+    }
+  };
 
   const updateSettings = (newSettings: Partial<BrandSettings>) => {
     const updated = { ...settings, ...newSettings };
@@ -52,6 +69,11 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     if (newSettings.accentColor) {
       document.documentElement.style.setProperty('--accent-custom', newSettings.accentColor);
     }
+    
+    // Apply theme
+    if (newSettings.theme) {
+      applyTheme(newSettings.theme);
+    }
   };
 
   const resetSettings = () => {
@@ -59,6 +81,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('hospitalSettings');
     document.documentElement.style.removeProperty('--primary-custom');
     document.documentElement.style.removeProperty('--accent-custom');
+    applyTheme(defaultSettings.theme);
   };
 
   if (!mounted) return <>{children}</>;
