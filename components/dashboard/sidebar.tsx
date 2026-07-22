@@ -14,6 +14,7 @@ import {
   UserCheck,
   Settings,
   MessageCircle,
+  BedDouble,
 } from 'lucide-react';
 import { useSettings } from '@/lib/settings-context';
 
@@ -21,6 +22,7 @@ const adminMenuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/patients', label: 'Patients', icon: Users },
   { href: '/dashboard/appointments', label: 'Appointments', icon: Calendar },
+  { href: '/dashboard/admissions', label: 'Admissions', icon: BedDouble },
   { href: '/dashboard/doctors', label: 'Doctors', icon: Stethoscope },
   { href: '/dashboard/billing', label: 'Billing', icon: FileText },
   { href: '/dashboard/inventory', label: 'Inventory', icon: Package },
@@ -31,6 +33,7 @@ const adminMenuItems = [
 const doctorMenuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/appointments', label: 'Appointments', icon: Calendar },
+  { href: '/dashboard/admissions', label: 'Admissions', icon: BedDouble },
   { href: '/dashboard/patients', label: 'Patients', icon: Users },
   { href: '/dashboard/messages', label: 'Messages', icon: MessageCircle },
 ];
@@ -44,6 +47,7 @@ const patientMenuItems = [
 const staffMenuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/patients', label: 'Patients', icon: Users },
+  { href: '/dashboard/admissions', label: 'Admissions', icon: BedDouble },
   { href: '/dashboard/inventory', label: 'Inventory', icon: Package },
 ];
 

@@ -162,3 +162,48 @@ export interface DbPrescription {
   notes: string | null;
   PrescriptionItem?: DbPrescriptionItem[];
 }
+
+export interface DbWard {
+  id: string;
+  hospitalId: string;
+  name: string;
+  wardType: string | null;
+  floor: string | null;
+}
+
+export interface DbBed {
+  id: string;
+  hospitalId: string;
+  wardId: string;
+  bedNumber: string;
+  status: 'AVAILABLE' | 'OCCUPIED' | 'RESERVED' | 'CLEANING' | 'OUT_OF_SERVICE';
+  dailyRate: number | null;
+  Ward?: DbWard;
+}
+
+export interface DbAdmission {
+  id: string;
+  hospitalId: string;
+  patientId: string;
+  bedId: string;
+  attendingDoctorId: string;
+  admittedAt: string;
+  reasonForAdmission: string | null;
+  status: 'ADMITTED' | 'DISCHARGED' | 'TRANSFERRED' | 'DECEASED';
+  dischargedAt: string | null;
+  dischargeSummary: string | null;
+  dischargeDiagnosis: string | null;
+  followUpInstructions: string | null;
+  Patient?: DbPatient;
+  User?: DbUser;
+  Bed?: DbBed;
+}
+
+export interface DbNursingNote {
+  id: string;
+  admissionId: string;
+  note: string;
+  recordedById: string;
+  recordedAt: string;
+  User?: DbUser;
+}

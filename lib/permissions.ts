@@ -45,3 +45,20 @@ export function canManageLab(role?: Role | null) {
 export function canManageRadiology(role?: Role | null) {
   return !!role && [...ADMIN, 'RADIOLOGIST', 'DOCTOR'].includes(role);
 }
+
+// Matches the DB's admission_write policy (Admission table)
+export function canManageAdmissions(role?: Role | null) {
+  return !!role && [...ADMIN, 'DOCTOR', 'NURSE'].includes(role);
+}
+
+// Matches the DB's bed_write policy (Bed table) — narrower than
+// admissions above, since admitting/discharging also has to flip bed
+// status and only these roles can write to Bed.
+export function canManageBeds(role?: Role | null) {
+  return !!role && [...ADMIN, 'NURSE'].includes(role);
+}
+
+// Matches the DB's ward_write policy (Ward table)
+export function canManageWards(role?: Role | null) {
+  return isAdmin(role);
+}
