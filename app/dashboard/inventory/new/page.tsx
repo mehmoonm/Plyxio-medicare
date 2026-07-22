@@ -93,7 +93,7 @@ export default function NewInventoryItemPage() {
             </select>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input placeholder="Drug name *" value={newDrug.name} onChange={(e) => setNewDrug({ ...newDrug, name: e.target.value })} />
             <Input placeholder="Generic name" value={newDrug.genericName} onChange={(e) => setNewDrug({ ...newDrug, genericName: e.target.value })} />
             <Input placeholder="Form (tablet, syrup...)" value={newDrug.form} onChange={(e) => setNewDrug({ ...newDrug, form: e.target.value })} />

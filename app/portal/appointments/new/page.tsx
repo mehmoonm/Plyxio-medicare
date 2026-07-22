@@ -67,7 +67,7 @@ export default function BookAppointmentPage() {
           </select>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="text-sm font-semibold text-gray-200 block mb-2">Date *</label>
             <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="glass-input w-full px-4 py-3 rounded-lg text-white" />

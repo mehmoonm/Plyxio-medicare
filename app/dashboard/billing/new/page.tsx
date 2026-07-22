@@ -125,17 +125,19 @@ export default function NewInvoicePage() {
             <label className="text-sm font-semibold text-gray-700">Line Items</label>
             <Button type="button" variant="outline" size="sm" onClick={addItem} className="gap-1"><Plus className="w-3 h-3" />Add Item</Button>
           </div>
-          {items.map((item, i) => (
-            <div key={i} className="grid grid-cols-12 gap-2 items-center">
-              <Input className="col-span-5" placeholder="Description" value={item.description} onChange={(e) => updateItem(i, 'description', e.target.value)} />
-              <Input className="col-span-2" placeholder="Category" value={item.category} onChange={(e) => updateItem(i, 'category', e.target.value)} />
-              <Input className="col-span-2" type="number" min={1} placeholder="Qty" value={item.quantity} onChange={(e) => updateItem(i, 'quantity', Number(e.target.value))} />
-              <Input className="col-span-2" type="number" min={0} placeholder="Unit Price" value={item.unitPrice} onChange={(e) => updateItem(i, 'unitPrice', Number(e.target.value))} />
-              <button type="button" onClick={() => removeItem(i)} className="col-span-1 text-red-500 hover:text-red-700">
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
+          <div className="overflow-x-auto space-y-2 pb-1">
+            {items.map((item, i) => (
+              <div key={i} className="min-w-[600px] grid grid-cols-12 gap-2 items-center">
+                <Input className="col-span-5" placeholder="Description" value={item.description} onChange={(e) => updateItem(i, 'description', e.target.value)} />
+                <Input className="col-span-2" placeholder="Category" value={item.category} onChange={(e) => updateItem(i, 'category', e.target.value)} />
+                <Input className="col-span-2" type="number" min={1} placeholder="Qty" value={item.quantity} onChange={(e) => updateItem(i, 'quantity', Number(e.target.value))} />
+                <Input className="col-span-2" type="number" min={0} placeholder="Unit Price" value={item.unitPrice} onChange={(e) => updateItem(i, 'unitPrice', Number(e.target.value))} />
+                <button type="button" onClick={() => removeItem(i)} className="col-span-1 text-red-500 hover:text-red-700">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4 pt-4 border-t">

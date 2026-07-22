@@ -206,20 +206,22 @@ export default function NewEncounterPage() {
             <Button type="button" variant="outline" size="sm" onClick={addRxItem} className="gap-1"><Plus className="w-3 h-3" />Add Drug</Button>
           </div>
           {rxItems.length === 0 && <p className="text-sm text-gray-400">No medications added</p>}
-          {rxItems.map((it, i) => (
-            <div key={i} className="grid grid-cols-12 gap-2 items-center">
-              <select className="col-span-3 px-2 py-2 rounded-lg border border-gray-300 text-sm" value={it.drugId} onChange={(e) => updateRxItem(i, 'drugId', e.target.value)}>
-                <option value="">Select drug</option>
-                {drugs.map((d) => <option key={d.id} value={d.id}>{d.name} {d.strength}</option>)}
-              </select>
-              <Input className="col-span-2" placeholder="Dose" value={it.dose} onChange={(e) => updateRxItem(i, 'dose', e.target.value)} />
-              <Input className="col-span-2" placeholder="Frequency" value={it.frequency} onChange={(e) => updateRxItem(i, 'frequency', e.target.value)} />
-              <Input className="col-span-2" placeholder="Route" value={it.route} onChange={(e) => updateRxItem(i, 'route', e.target.value)} />
-              <Input className="col-span-1" type="number" placeholder="Days" value={it.durationDays} onChange={(e) => updateRxItem(i, 'durationDays', Number(e.target.value))} />
-              <Input className="col-span-1" type="number" placeholder="Qty" value={it.quantity} onChange={(e) => updateRxItem(i, 'quantity', Number(e.target.value))} />
-              <button type="button" onClick={() => removeRxItem(i)} className="col-span-1 text-red-500"><Trash2 className="w-4 h-4" /></button>
-            </div>
-          ))}
+          <div className="overflow-x-auto space-y-2 pb-1">
+            {rxItems.map((it, i) => (
+              <div key={i} className="min-w-[700px] grid grid-cols-12 gap-2 items-center">
+                <select className="col-span-3 px-2 py-2 rounded-lg border border-gray-300 text-sm" value={it.drugId} onChange={(e) => updateRxItem(i, 'drugId', e.target.value)}>
+                  <option value="">Select drug</option>
+                  {drugs.map((d) => <option key={d.id} value={d.id}>{d.name} {d.strength}</option>)}
+                </select>
+                <Input className="col-span-2" placeholder="Dose" value={it.dose} onChange={(e) => updateRxItem(i, 'dose', e.target.value)} />
+                <Input className="col-span-2" placeholder="Frequency" value={it.frequency} onChange={(e) => updateRxItem(i, 'frequency', e.target.value)} />
+                <Input className="col-span-2" placeholder="Route" value={it.route} onChange={(e) => updateRxItem(i, 'route', e.target.value)} />
+                <Input className="col-span-1" type="number" placeholder="Days" value={it.durationDays} onChange={(e) => updateRxItem(i, 'durationDays', Number(e.target.value))} />
+                <Input className="col-span-1" type="number" placeholder="Qty" value={it.quantity} onChange={(e) => updateRxItem(i, 'quantity', Number(e.target.value))} />
+                <button type="button" onClick={() => removeRxItem(i)} className="col-span-1 text-red-500"><Trash2 className="w-4 h-4" /></button>
+              </div>
+            ))}
+          </div>
         </div>
 
         <Button type="submit" disabled={loading} className="gap-2">

@@ -75,7 +75,7 @@ export default function NewStaffPage() {
           <Input name="fullName" value={form.fullName} onChange={handleChange} placeholder="Full name" required />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="text-sm font-semibold text-gray-700 block mb-2">Email *</label>
             <Input type="email" name="email" value={form.email} onChange={handleChange} placeholder="Email address" required />
@@ -94,7 +94,7 @@ export default function NewStaffPage() {
         </div>
 
         {form.role === 'DOCTOR' && (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-semibold text-gray-700 block mb-2">Specialty</label>
               <Input name="specialty" value={form.specialty} onChange={handleChange} placeholder="e.g. Cardiology" />

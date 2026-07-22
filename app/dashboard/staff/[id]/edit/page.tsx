@@ -68,7 +68,7 @@ export default function EditStaffPage() {
           <label className="text-sm font-semibold text-gray-700 block mb-2">Full Name</label>
           <Input name="fullName" value={form.fullName || ''} onChange={handleChange} required />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="text-sm font-semibold text-gray-700 block mb-2">Email (read-only)</label>
             <Input value={form.email} disabled />
@@ -83,7 +83,7 @@ export default function EditStaffPage() {
           <Input value={form.role?.replace('_', ' ')} disabled />
         </div>
         {form.role === 'DOCTOR' && (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-semibold text-gray-700 block mb-2">Specialty</label>
               <Input name="specialty" value={form.specialty || ''} onChange={handleChange} />

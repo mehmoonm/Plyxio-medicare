@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { PatientAuthProvider, usePatientAuth } from '@/lib/patient-auth-context';
-import { LayoutDashboard, Calendar, Pill, FileText, Receipt, MessageCircle, LogOut } from 'lucide-react';
+import { LayoutDashboard, Calendar, Pill, FileText, Receipt, MessageCircle, LogOut, Menu } from 'lucide-react';
 
 const menuItems = [
   { href: '/portal', label: 'Dashboard', icon: LayoutDashboard },
@@ -19,12 +19,17 @@ function PortalShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { isAuthenticated, loading, patient, logout } = usePatientAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !isAuthenticated && pathname !== '/portal/login' && pathname !== '/portal/reset-password') {
       router.push('/portal/login');
     }
   }, [isAuthenticated, loading, pathname, router]);
+
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
 
   if (pathname === '/portal/login' || pathname === '/portal/reset-password') return <>{children}</>;
 
@@ -40,7 +45,11 @@ function PortalShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-      <div className="w-64 sidebar-container flex flex-col">
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black/50 z-30 md:hidden" onClick={() => setSidebarOpen(false)} aria-hidden="true" />
+      )}
+
+      <div className={`w-64 sidebar-container flex flex-col fixed inset-y-0 left-0 z-40 transition-transform duration-300 md:static md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-6 sidebar-border">
           <h1 className="text-lg font-bold sidebar-text">MediCare</h1>
           <p className="text-xs sidebar-text-muted">Patient Portal</p>
@@ -50,7 +59,7 @@ function PortalShell({ children }: { children: React.ReactNode }) {
             const Icon = item.icon;
             const isActive = pathname === item.href;
             return (
-              <Link key={item.href} href={item.href} className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${isActive ? 'sidebar-nav-active' : 'sidebar-nav-inactive'}`}>
+              <Link key={item.href} href={item.href} onClick={() => setSidebarOpen(false)} className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${isActive ? 'sidebar-nav-active' : 'sidebar-nav-inactive'}`}>
                 <Icon className="w-5 h-5" />
                 <span className="font-medium text-sm">{item.label}</span>
               </Link>
@@ -67,7 +76,17 @@ function PortalShell({ children }: { children: React.ReactNode }) {
           </button>
         </div>
       </div>
-      <main className="flex-1 overflow-auto p-8">{children}</main>
+
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+        <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-white/10 bg-slate-900/50 backdrop-blur-xl">
+          <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg bg-white/5 border border-white/10 text-white" aria-label="Open menu">
+            <Menu className="w-5 h-5" />
+          </button>
+          <h1 className="text-sm font-bold text-white">MediCare</h1>
+          <div className="w-9" />
+        </div>
+        <main className="flex-1 overflow-auto p-4 sm:p-8">{children}</main>
+      </div>
     </div>
   );
 }

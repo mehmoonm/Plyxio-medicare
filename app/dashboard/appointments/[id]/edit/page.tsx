@@ -64,7 +64,7 @@ export default function EditAppointmentPage() {
 
       <form onSubmit={handleSubmit} className="bg-white rounded-2xl border p-8 space-y-6 max-w-2xl">
         {error && <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg text-sm">{error}</div>}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="text-sm font-semibold text-gray-700 block mb-2">Date</label>
             <Input type="date" name="date" value={form.date} onChange={handleChange} required />
