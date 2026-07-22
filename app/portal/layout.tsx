@@ -21,12 +21,12 @@ function PortalShell({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading, patient, logout } = usePatientAuth();
 
   useEffect(() => {
-    if (!loading && !isAuthenticated && pathname !== '/portal/login') {
+    if (!loading && !isAuthenticated && pathname !== '/portal/login' && pathname !== '/portal/reset-password') {
       router.push('/portal/login');
     }
   }, [isAuthenticated, loading, pathname, router]);
 
-  if (pathname === '/portal/login') return <>{children}</>;
+  if (pathname === '/portal/login' || pathname === '/portal/reset-password') return <>{children}</>;
 
   if (loading) {
     return (

@@ -10,6 +10,8 @@ interface AuthContextType {
   logout: () => void;
   isAuthenticated: boolean;
   user: DbUser | null;
+  requestPasswordReset: (email: string) => Promise<void>;
+  updatePassword: (newPassword: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -60,6 +62,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
+  const requestPasswordReset = async (email: string) => {
+    const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}/reset-password` : undefined;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+    if (error) throw new Error(error.message);
+  };
+
+  const updatePassword = async (newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw new Error(error.message);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -68,6 +81,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         logout,
         isAuthenticated: user !== null,
         user,
+        requestPasswordReset,
+        updatePassword,
       }}
     >
       {children}

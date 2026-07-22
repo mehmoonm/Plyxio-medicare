@@ -10,14 +10,15 @@ const DEMO_HOSPITAL_ID = '57497c75-d23c-4b87-acae-0927b2702e25';
 
 export default function PortalLoginPage() {
   const router = useRouter();
-  const { login, register } = usePatientAuth();
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const { login, register, requestPasswordReset } = usePatientAuth();
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [regForm, setRegForm] = useState({ fullName: '', email: '', phone: '', cnic: '', password: '' });
+  const [forgotEmail, setForgotEmail] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +40,7 @@ export default function PortalLoginPage() {
     setSuccess('');
     setLoading(true);
     try {
-      await register({
+      const result = await register({
         email: regForm.email,
         password: regForm.password,
         fullName: regForm.fullName,
@@ -47,14 +48,29 @@ export default function PortalLoginPage() {
         cnic: regForm.cnic || undefined,
         hospitalId: DEMO_HOSPITAL_ID,
       });
-      router.push('/portal');
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Registration failed';
-      if (message.toLowerCase().includes('confirm')) {
-        setSuccess(message);
+      if (result.needsEmailConfirmation) {
+        setSuccess('Account created — check your email to confirm it, then sign in.');
+        setMode('login');
       } else {
-        setError(message);
+        router.push('/portal');
       }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Registration failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    setLoading(true);
+    try {
+      await requestPasswordReset(forgotEmail);
+      setSuccess('If that email has an account, a reset link is on its way.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not send reset email');
     } finally {
       setLoading(false);
     }
@@ -72,10 +88,10 @@ export default function PortalLoginPage() {
           </div>
 
           <div className="flex bg-white/5 rounded-lg p-1">
-            <button onClick={() => setMode('login')} className={`flex-1 py-2 rounded-md text-sm font-semibold transition-all ${mode === 'login' ? 'bg-indigo-600 text-white' : 'text-gray-300'}`}>
+            <button onClick={() => { setMode('login'); setError(''); setSuccess(''); }} className={`flex-1 py-2 rounded-md text-sm font-semibold transition-all ${mode === 'login' ? 'bg-indigo-600 text-white' : 'text-gray-300'}`}>
               Sign In
             </button>
-            <button onClick={() => setMode('register')} className={`flex-1 py-2 rounded-md text-sm font-semibold transition-all ${mode === 'register' ? 'bg-indigo-600 text-white' : 'text-gray-300'}`}>
+            <button onClick={() => { setMode('register'); setError(''); setSuccess(''); }} className={`flex-1 py-2 rounded-md text-sm font-semibold transition-all ${mode === 'register' ? 'bg-indigo-600 text-white' : 'text-gray-300'}`}>
               Create Account
             </button>
           </div>
@@ -90,6 +106,20 @@ export default function PortalLoginPage() {
               <Button type="submit" disabled={loading} className="w-full gradient-primary text-white font-semibold py-3 rounded-lg">
                 {loading ? 'Signing in...' : 'Sign In'}
               </Button>
+              <button type="button" onClick={() => { setMode('forgot'); setError(''); setSuccess(''); setForgotEmail(loginForm.email); }} className="text-xs text-gray-400 hover:text-indigo-300 transition-colors block mx-auto">
+                Forgot your password?
+              </button>
+            </form>
+          ) : mode === 'forgot' ? (
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <p className="text-sm text-gray-300">Enter your account email and we'll send a link to reset your password.</p>
+              <Input type="email" placeholder="Email" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} className="glass-input w-full px-4 py-3 rounded-lg text-white" required />
+              <Button type="submit" disabled={loading} className="w-full gradient-primary text-white font-semibold py-3 rounded-lg">
+                {loading ? 'Sending...' : 'Send Reset Link'}
+              </Button>
+              <button type="button" onClick={() => { setMode('login'); setError(''); setSuccess(''); }} className="text-xs text-gray-400 hover:text-indigo-300 transition-colors block mx-auto">
+                ← Back to sign in
+              </button>
             </form>
           ) : (
             <form onSubmit={handleRegister} className="space-y-4">

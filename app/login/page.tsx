@@ -9,11 +9,14 @@ import { Input } from '@/components/ui/input';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, requestPasswordReset } = useAuth();
   const [email, setEmail] = useState('admin@plyxio-demo.pk');
   const [password, setPassword] = useState('Plyxio@2026');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,6 +28,21 @@ export default function LoginPage() {
       router.push('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    setLoading(true);
+    try {
+      await requestPasswordReset(forgotEmail);
+      setSuccess('If that email has an account, a reset link is on its way.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not send reset email');
     } finally {
       setLoading(false);
     }
@@ -52,6 +70,12 @@ export default function LoginPage() {
           </div>
 
           {/* Form */}
+          {success && (
+            <div className="bg-emerald-500/20 border border-emerald-500/50 text-emerald-200 p-4 rounded-lg text-sm backdrop-blur-xl">
+              {success}
+            </div>
+          )}
+          {!showForgot ? (
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-semibold text-gray-200 block">Email Address</label>
@@ -98,7 +122,36 @@ export default function LoginPage() {
                 'Sign In'
               )}
             </Button>
+
+            <button type="button" onClick={() => { setShowForgot(true); setError(''); setSuccess(''); setForgotEmail(email); }} className="text-xs text-gray-400 hover:text-indigo-300 transition-colors block mx-auto">
+              Forgot your password?
+            </button>
           </form>
+          ) : (
+          <form onSubmit={handleForgotPassword} className="space-y-5">
+            <p className="text-sm text-gray-300">Enter your account email and we'll send a link to reset your password.</p>
+            <Input
+              type="email"
+              placeholder="Email"
+              value={forgotEmail}
+              onChange={(e) => setForgotEmail(e.target.value)}
+              disabled={loading}
+              className="glass-input w-full px-4 py-3 rounded-lg text-white"
+              required
+            />
+            {error && (
+              <div className="bg-red-500/20 border border-red-500/50 text-red-200 p-4 rounded-lg text-sm backdrop-blur-xl">
+                {error}
+              </div>
+            )}
+            <Button type="submit" disabled={loading} className="w-full gradient-primary text-white font-semibold py-3 rounded-lg">
+              {loading ? 'Sending...' : 'Send Reset Link'}
+            </Button>
+            <button type="button" onClick={() => { setShowForgot(false); setError(''); setSuccess(''); }} className="text-xs text-gray-400 hover:text-indigo-300 transition-colors block mx-auto">
+              ← Back to sign in
+            </button>
+          </form>
+          )}
 
           {/* Demo Credentials */}
           <div className="pt-4 border-t border-white/10">

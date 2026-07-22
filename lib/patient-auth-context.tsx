@@ -10,8 +10,6 @@ interface PatientAuthContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  // Self-registration: creates the auth user, then either claims an existing
-  // unclaimed Patient record (matched by email) or creates a brand new one.
   register: (params: {
     email: string;
     password: string;
@@ -19,32 +17,82 @@ interface PatientAuthContextType {
     cnic?: string;
     phone?: string;
     hospitalId: string;
-  }) => Promise<void>;
+  }) => Promise<{ needsEmailConfirmation: boolean }>;
+  requestPasswordReset: (email: string) => Promise<void>;
+  updatePassword: (newPassword: string) => Promise<void>;
 }
 
 const PatientAuthContext = createContext<PatientAuthContextType | undefined>(undefined);
+
+// Finds or creates the Patient row for whoever is in the current session.
+// Runs with an authenticated session, so it always satisfies RLS —
+// unlike trying to write immediately after signUp(), which may still be
+// unauthenticated if the project requires email confirmation first.
+async function ensurePatientRecord(authUser: { id: string; email?: string; user_metadata?: any }): Promise<DbPatient | null> {
+  const { data: existing } = await supabase.from('Patient').select('*').eq('authUserId', authUser.id).maybeSingle();
+  if (existing) return existing as DbPatient;
+
+  if (authUser.email) {
+    const { data: unclaimed } = await supabase
+      .from('Patient')
+      .select('*')
+      .eq('email', authUser.email)
+      .is('authUserId', null)
+      .maybeSingle();
+
+    if (unclaimed) {
+      const { data: claimed } = await supabase
+        .from('Patient')
+        .update({ authUserId: authUser.id })
+        .eq('id', unclaimed.id)
+        .select()
+        .single();
+      if (claimed) return claimed as DbPatient;
+    }
+  }
+
+  const meta = authUser.user_metadata || {};
+  const mrn = `MRN-${Date.now().toString().slice(-8)}`;
+  const { data: created, error } = await supabase
+    .from('Patient')
+    .insert({
+      authUserId: authUser.id,
+      hospitalId: meta.hospitalId,
+      mrn,
+      fullName: meta.fullName || authUser.email || 'Patient',
+      email: authUser.email || null,
+      phone: meta.phone || null,
+      cnic: meta.cnic || null,
+      gender: 'OTHER',
+      country: 'Pakistan',
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Failed to create patient record:', error.message);
+    return null;
+  }
+  return created as DbPatient;
+}
 
 export function PatientAuthProvider({ children }: { children: React.ReactNode }) {
   const [patient, setPatient] = useState<DbPatient | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadPatient = async (authUserId: string) => {
-    const { data } = await supabase.from('Patient').select('*').eq('authUserId', authUserId).maybeSingle();
-    setPatient(data as DbPatient | null);
-  };
-
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        loadPatient(session.user.id).finally(() => setLoading(false));
-      } else {
-        setLoading(false);
+        const p = await ensurePatientRecord(session.user);
+        setPatient(p);
       }
+      setLoading(false);
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
-        loadPatient(session.user.id);
+        const p = await ensurePatientRecord(session.user);
+        setPatient(p);
       } else {
         setPatient(null);
       }
@@ -56,45 +104,39 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
   const login = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw new Error(error.message);
-    if (data.user) await loadPatient(data.user.id);
+    if (data.user) setPatient(await ensurePatientRecord(data.user));
   };
 
   const register = async ({ email, password, fullName, cnic, phone, hospitalId }: {
     email: string; password: string; fullName: string; cnic?: string; phone?: string; hospitalId: string;
   }) => {
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password });
-    if (signUpError) throw new Error(signUpError.message);
-    const authUserId = signUpData.user?.id;
-    if (!authUserId) throw new Error('Registration did not return a user. Check your email to confirm your account, then log in.');
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { fullName, phone, cnic, hospitalId } },
+    });
+    if (error) throw new Error(error.message);
 
-    // Try to claim an existing staff-created record with the same email that hasn't been claimed yet
-    const { data: existing } = await supabase
-      .from('Patient')
-      .select('id')
-      .eq('email', email)
-      .is('authUserId', null)
-      .maybeSingle();
-
-    if (existing) {
-      const { error: claimError } = await supabase.from('Patient').update({ authUserId }).eq('id', existing.id);
-      if (claimError) throw new Error(claimError.message);
-    } else {
-      const mrn = `MRN-${Date.now().toString().slice(-8)}`;
-      const { error: insertError } = await supabase.from('Patient').insert({
-        authUserId,
-        hospitalId,
-        mrn,
-        fullName,
-        email,
-        cnic: cnic || null,
-        phone: phone || null,
-        gender: 'OTHER',
-        country: 'Pakistan',
-      });
-      if (insertError) throw new Error(insertError.message);
+    if (data.session && data.user) {
+      // Confirmation not required (or already auto-confirmed) — session is live now
+      setPatient(await ensurePatientRecord(data.user));
+      return { needsEmailConfirmation: false };
     }
 
-    await loadPatient(authUserId);
+    // No active session yet — Supabase is waiting on email confirmation.
+    // The Patient record gets created automatically the first time they log in.
+    return { needsEmailConfirmation: true };
+  };
+
+  const requestPasswordReset = async (email: string) => {
+    const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}/portal/reset-password` : undefined;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+    if (error) throw new Error(error.message);
+  };
+
+  const updatePassword = async (newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw new Error(error.message);
   };
 
   const logout = () => {
@@ -103,7 +145,7 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
   };
 
   return (
-    <PatientAuthContext.Provider value={{ loading, patient, isAuthenticated: patient !== null, login, logout, register }}>
+    <PatientAuthContext.Provider value={{ loading, patient, isAuthenticated: patient !== null, login, logout, register, requestPasswordReset, updatePassword }}>
       {children}
     </PatientAuthContext.Provider>
   );
