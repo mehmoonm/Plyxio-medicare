@@ -64,7 +64,7 @@ export default function LoginPage() {
               </svg>
             </div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
-              MediCare
+              PLYXIO Vitals
             </h1>
             <p className="text-gray-300 text-sm">Hospital Management System</p>
           </div>

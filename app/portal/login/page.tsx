@@ -82,7 +82,7 @@ export default function PortalLoginPage() {
         <div className="glass-card p-8 rounded-2xl space-y-6">
           <div className="text-center space-y-2">
             <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
-              MediCare Patient Portal
+              PLYXIO Vitals Patient Portal
             </h1>
             <p className="text-gray-300 text-sm">View records, book visits, pay bills, message your doctor</p>
           </div>

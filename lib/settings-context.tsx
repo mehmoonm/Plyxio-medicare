@@ -14,7 +14,7 @@ const defaultSettings: BrandSettings = {
   primaryColor: '#6366f1',
   accentColor: '#06b6d4',
   logo: null,
-  hospitalName: 'MediCare',
+  hospitalName: 'PLYXIO Vitals',
   theme: 'dark',
 };
 

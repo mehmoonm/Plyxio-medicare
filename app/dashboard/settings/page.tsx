@@ -69,7 +69,7 @@ export default function SettingsPage() {
     resetSettings();
     setPrimaryColor('#6366f1');
     setAccentColor('#06b6d4');
-    setHospitalName('MediCare');
+    setHospitalName('PLYXIO Vitals');
     setLogo(null);
     setTheme('dark');
     setSaved(true);

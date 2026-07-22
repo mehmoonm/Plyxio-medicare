@@ -75,7 +75,7 @@ function PortalShell({ children }: { children: React.ReactNode }) {
 
       <div className={`w-64 sidebar-container flex flex-col fixed inset-y-0 left-0 z-40 transition-transform duration-300 md:static md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-6 sidebar-border">
-          <h1 className="text-lg font-bold sidebar-text">MediCare</h1>
+          <h1 className="text-lg font-bold sidebar-text">PLYXIO Vitals</h1>
           <p className="text-xs sidebar-text-muted">Patient Portal</p>
         </div>
         <nav className="flex-1 space-y-1 p-4">
@@ -106,7 +106,7 @@ function PortalShell({ children }: { children: React.ReactNode }) {
           <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg bg-white/5 border border-white/10 text-white" aria-label="Open menu">
             <Menu className="w-5 h-5" />
           </button>
-          <h1 className="text-sm font-bold text-white">MediCare</h1>
+          <h1 className="text-sm font-bold text-white">PLYXIO Vitals</h1>
           <div className="w-9" />
         </div>
         <main className="flex-1 overflow-auto p-4 sm:p-8">

@@ -6,13 +6,13 @@ import { SettingsProvider } from '@/lib/settings-context'
 import { ServiceWorkerRegistration } from '@/components/service-worker-registration'
 
 export const metadata: Metadata = {
-  title: 'MediCare — PLYXIO HMS',
+  title: 'PLYXIO Vitals',
   description: 'Hospital Management System by PLYXIO',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'MediCare',
+    title: 'PLYXIO Vitals',
   },
   icons: {
     icon: [

@@ -1,7 +1,7 @@
 {
-  "name": "MediCare Hospital Management System",
-  "short_name": "MediCare",
-  "description": "PLYXIO HMS — hospital management system",
+  "name": "PLYXIO Vitals Hospital Management System",
+  "short_name": "PLYXIO Vitals",
+  "description": "PLYXIO Vitals — hospital management system",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",
