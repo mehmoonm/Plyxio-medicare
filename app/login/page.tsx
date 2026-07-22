@@ -129,6 +129,12 @@ export default function LoginPage() {
               ))}
             </div>
           </div>
+
+          <div className="text-center pt-2">
+            <a href="/portal/login" className="text-xs text-gray-400 hover:text-indigo-300 transition-colors">
+              Are you a patient? Go to the Patient Portal →
+            </a>
+          </div>
         </div>
       </div>
     </div>

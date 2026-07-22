@@ -16,6 +16,19 @@ export interface DbUser {
   specialty: string | null;
   licenseNo: string | null;
   isActive: boolean;
+  messagingEnabled?: boolean;
+}
+
+export interface DbMessage {
+  id: string;
+  hospitalId: string;
+  patientId: string;
+  doctorId: string;
+  senderRole: 'PATIENT' | 'DOCTOR';
+  body: string;
+  readAt: string | null;
+  createdAt: string;
+  User?: DbUser;
 }
 
 export interface DbPatient {

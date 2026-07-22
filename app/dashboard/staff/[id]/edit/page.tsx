@@ -41,6 +41,7 @@ export default function EditStaffPage() {
         specialty: form.specialty,
         licenseNo: form.licenseNo,
         isActive: form.isActive,
+        messagingEnabled: form.messagingEnabled,
       })
       .eq('id', params.id);
     setLoading(false);
@@ -92,6 +93,12 @@ export default function EditStaffPage() {
               <Input name="licenseNo" value={form.licenseNo || ''} onChange={handleChange} />
             </div>
           </div>
+        )}
+        {form.role === 'DOCTOR' && (
+          <label className="flex items-center gap-2">
+            <input type="checkbox" name="messagingEnabled" checked={!!form.messagingEnabled} onChange={handleChange} className="w-4 h-4" />
+            <span className="text-sm font-semibold text-gray-700">Allow patients to message this doctor via the portal</span>
+          </label>
         )}
         <label className="flex items-center gap-2">
           <input type="checkbox" name="isActive" checked={!!form.isActive} onChange={handleChange} className="w-4 h-4" />

@@ -13,6 +13,7 @@ import {
   Package,
   UserCheck,
   Settings,
+  MessageCircle,
 } from 'lucide-react';
 import { useSettings } from '@/lib/settings-context';
 
@@ -31,6 +32,7 @@ const doctorMenuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/appointments', label: 'Appointments', icon: Calendar },
   { href: '/dashboard/patients', label: 'Patients', icon: Users },
+  { href: '/dashboard/messages', label: 'Messages', icon: MessageCircle },
 ];
 
 const patientMenuItems = [
