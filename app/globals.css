@@ -342,3 +342,70 @@
 .light .sidebar-nav-inactive {
   @apply text-slate-600 hover:bg-slate-200 hover:text-slate-900;
 }
+
+/* ---------------------------------------------------------------------
+   Compatibility patch: several dashboard/portal pages were built with a
+   plain light-theme card style (bg-white + text-gray-900/700/500) that
+   never got adapted to the app's dark glass theme. In dark mode this
+   renders as dark text on dark/white surfaces with poor contrast.
+   Re-map those hardcoded light-theme classes to readable dark-mode
+   equivalents wherever they appear inside the main content area, mirroring
+   the existing .light override pattern above (":root:not(.light)" == the
+   default/dark state, same convention already used in this file).
+--------------------------------------------------------------------- */
+:root:not(.light) main .bg-white {
+  background-color: rgba(15, 23, 42, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+:root:not(.light) main .bg-gray-50 {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+:root:not(.light) main .bg-gray-100 {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+:root:not(.light) main .hover\:bg-gray-50:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+:root:not(.light) main .text-gray-900,
+:root:not(.light) main .text-gray-800 {
+  color: #f1f5f9 !important;
+}
+
+:root:not(.light) main .text-gray-700,
+:root:not(.light) main .text-gray-600 {
+  color: #cbd5e1 !important;
+}
+
+:root:not(.light) main .text-gray-500,
+:root:not(.light) main .text-gray-400 {
+  color: #94a3b8 !important;
+}
+
+:root:not(.light) main .border-gray-300,
+:root:not(.light) main .border-gray-200,
+:root:not(.light) main .border,
+:root:not(.light) main table tr {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+:root:not(.light) main input,
+:root:not(.light) main select,
+:root:not(.light) main textarea {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: #f1f5f9 !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+:root:not(.light) main input::placeholder,
+:root:not(.light) main textarea::placeholder {
+  color: #64748b !important;
+}
+
+:root:not(.light) main option {
+  background-color: #0f172a;
+  color: #f1f5f9;
+}
