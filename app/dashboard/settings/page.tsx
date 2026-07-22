@@ -62,7 +62,7 @@ export default function SettingsPage() {
           </button>
         </Link>
         <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-300 to-cyan-300 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold heading-gradient">
             Settings
           </h1>
           <p className="text-slate-400 mt-2">Customize your hospital branding</p>
@@ -232,7 +232,7 @@ export default function SettingsPage() {
               {logo ? (
                 <img src={logo} alt="Logo" className="max-w-full max-h-24 object-contain" />
               ) : (
-                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-600 to-cyan-500 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-lg gradient-primary-br flex items-center justify-center">
                   <span className="text-white font-bold text-sm">{hospitalName.charAt(0)}</span>
                 </div>
               )}

@@ -18,7 +18,7 @@ export function Header() {
   return (
     <header className="backdrop-blur-xl bg-gradient-to-r from-slate-900/50 to-slate-800/50 border-b border-white/10 px-8 py-5 flex items-center justify-between">
       <div className="flex items-center space-x-4">
-        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-600 to-cyan-500 flex items-center justify-center shadow-lg">
+        <div className="w-12 h-12 rounded-lg gradient-primary-br flex items-center justify-center shadow-lg">
           <User className="w-6 h-6 text-white" />
         </div>
         <div>

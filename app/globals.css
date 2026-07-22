@@ -48,8 +48,8 @@
 :root {
   color-scheme: light;
   --background: linear-gradient(135deg, #0f0c29 0%, #1a1a3e 50%, #16213e 100%);
-  --background-gradient: linear-gradient(135deg, #0f0c29 0%, #1a1a3e 50%, #16213e 100%);
-  --main-gradient: linear-gradient(to bottom, rgba(15, 23, 42, 0.5), rgba(15, 23, 42, 0.5));
+  --background-gradient: linear-gradient(135deg, color-mix(in srgb, var(--primary, #6366f1) 22%, #0f0c29) 0%, #1a1a3e 50%, color-mix(in srgb, var(--accent, #06b6d4) 20%, #16213e) 100%);
+  --main-gradient: linear-gradient(to bottom, color-mix(in srgb, var(--primary, #6366f1) 10%, rgba(15, 23, 42, 0.5)), color-mix(in srgb, var(--accent, #06b6d4) 10%, rgba(15, 23, 42, 0.5)));
   --foreground: #f1f5f9;
   --card: rgba(15, 23, 42, 0.4);
   --card-foreground: #f1f5f9;
@@ -86,8 +86,8 @@
 .dark {
   color-scheme: dark;
   --background: linear-gradient(135deg, #0f0c29 0%, #1a1a3e 50%, #16213e 100%);
-  --background-gradient: linear-gradient(135deg, #0f0c29 0%, #1a1a3e 50%, #16213e 100%);
-  --main-gradient: linear-gradient(to bottom, rgba(15, 23, 42, 0.5), rgba(15, 23, 42, 0.5));
+  --background-gradient: linear-gradient(135deg, color-mix(in srgb, var(--primary, #6366f1) 22%, #0f0c29) 0%, #1a1a3e 50%, color-mix(in srgb, var(--accent, #06b6d4) 20%, #16213e) 100%);
+  --main-gradient: linear-gradient(to bottom, color-mix(in srgb, var(--primary, #6366f1) 10%, rgba(15, 23, 42, 0.5)), color-mix(in srgb, var(--accent, #06b6d4) 10%, rgba(15, 23, 42, 0.5)));
   --foreground: #f1f5f9;
   --card: rgba(15, 23, 42, 0.4);
   --card-foreground: #f1f5f9;
@@ -160,8 +160,8 @@
 /* Light mode styles */
 .light {
   --background: linear-gradient(135deg, #f8fafc 0%, #f0f4f8 50%, #e8ecf1 100%);
-  --background-gradient: linear-gradient(135deg, #f8fafc 0%, #f0f4f8 50%, #e8ecf1 100%);
-  --main-gradient: linear-gradient(to bottom, rgba(248, 250, 252, 0.5), rgba(240, 244, 248, 0.5));
+  --background-gradient: linear-gradient(135deg, color-mix(in srgb, var(--primary, #6366f1) 8%, #f8fafc) 0%, #f0f4f8 50%, color-mix(in srgb, var(--accent, #06b6d4) 8%, #e8ecf1) 100%);
+  --main-gradient: linear-gradient(to bottom, color-mix(in srgb, var(--primary, #6366f1) 4%, rgba(248, 250, 252, 0.5)), color-mix(in srgb, var(--accent, #06b6d4) 4%, rgba(240, 244, 248, 0.5)));
   --foreground: #1e293b;
   --card: rgba(30, 41, 59, 0.08);
   --card-foreground: #1e293b;
@@ -478,4 +478,18 @@
 
 .light .auth-page-dark .border-white\/10 {
   border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Brand-color-following utilities: unlike .gradient-primary (a solid
+   background), these follow the hospital's chosen primary/accent colors
+   for heading text and icon badges used throughout the in-app pages. */
+.heading-gradient {
+  background-image: linear-gradient(to right, var(--primary, #6366f1), var(--accent, #06b6d4));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.gradient-primary-br {
+  background-image: linear-gradient(to bottom right, var(--primary, #6366f1), var(--accent, #06b6d4));
 }

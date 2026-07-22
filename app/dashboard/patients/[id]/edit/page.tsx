@@ -54,7 +54,7 @@ export default function EditPatientPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-300 to-cyan-300 bg-clip-text text-transparent">Edit Patient</h1>
+          <h1 className="text-4xl font-bold heading-gradient">Edit Patient</h1>
           <p className="text-gray-400 mt-2">Update patient information</p>
         </div>
         <Link href={`/dashboard/patients/${params.id}`}>

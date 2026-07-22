@@ -58,7 +58,7 @@ export default function DashboardPage() {
       <div className="relative">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-300 to-cyan-300 bg-clip-text text-transparent">
+            <h1 className="text-4xl font-bold heading-gradient">
               Welcome back, {user?.fullName}
             </h1>
             <p className="text-gray-400 mt-2 text-lg">Here&apos;s your hospital overview at a glance</p>
