@@ -409,3 +409,69 @@
   background-color: #0f172a;
   color: #f1f5f9;
 }
+
+/* ---------------------------------------------------------------------
+   Auth screens (staff login, patient portal login, password resets) keep
+   a fixed dark hero look regardless of the in-app light/dark preference —
+   the same way most products keep their sign-in screen on brand rather
+   than following a setting the user hasn't logged in to change yet.
+   The ".light" overrides above are written broadly (targeting classes
+   like .glass-card, .text-white, .text-gray-300 anywhere in the app), so
+   without this, switching to Light mode washes out these pages even
+   though their background never left dark mode. Re-assert the dark
+   values specifically inside .auth-page-dark to cancel that out.
+--------------------------------------------------------------------- */
+.light .auth-page-dark {
+  color: #f1f5f9;
+}
+
+.light .auth-page-dark .glass-card {
+  background: linear-gradient(to bottom right, rgba(15, 23, 42, 0.6), rgba(2, 6, 23, 0.5)) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.light .auth-page-dark .glass-input {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.light .auth-page-dark .glass-input::placeholder {
+  color: #94a3b8 !important;
+}
+
+.light .auth-page-dark .text-white {
+  color: #f8fafc !important;
+}
+
+.light .auth-page-dark .text-gray-200,
+.light .auth-page-dark .text-gray-300 {
+  color: #e2e8f0 !important;
+}
+
+.light .auth-page-dark .text-gray-400 {
+  color: #94a3b8 !important;
+}
+
+.light .auth-page-dark .text-gray-500 {
+  color: #64748b !important;
+}
+
+.light .auth-page-dark h1 {
+  background-image: linear-gradient(to right, #818cf8, #22d3ee);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent !important;
+}
+
+.light .auth-page-dark .bg-white\/5 {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.light .auth-page-dark .bg-white\/10 {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.light .auth-page-dark .border-white\/10 {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}

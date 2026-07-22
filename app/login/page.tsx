@@ -49,7 +49,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="auth-page-dark min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4 relative overflow-hidden">
       {/* Animated gradient orbs */}
       <div className="absolute top-20 left-20 w-72 h-72 bg-indigo-600/20 rounded-full mix-blend-screen blur-3xl animate-pulse"></div>
       <div className="absolute bottom-20 right-20 w-72 h-72 bg-cyan-600/20 rounded-full mix-blend-screen blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
