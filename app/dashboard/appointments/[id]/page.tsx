@@ -5,19 +5,23 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth-context';
+import { useSettings } from '@/lib/settings-context';
+import { sendEmail, appointmentReminderEmail } from '@/lib/send-email';
 import type { DbAppointment } from '@/lib/supabase/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { canCheckIn, canDoEncounters, canManageAppointments } from '@/lib/permissions';
-import { ArrowLeft, Edit, Calendar, UserCheck, Stethoscope, XCircle } from 'lucide-react';
+import { ArrowLeft, Edit, Calendar, UserCheck, Stethoscope, XCircle, Mail } from 'lucide-react';
 
 export default function AppointmentDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuth();
+  const { settings } = useSettings();
   const [apt, setApt] = useState<DbAppointment | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [emailStatus, setEmailStatus] = useState('');
 
   const load = async () => {
     const { data } = await supabase
@@ -43,6 +47,22 @@ export default function AppointmentDetailPage() {
 
   const startEncounter = () => {
     router.push(`/dashboard/encounters/new?appointmentId=${params.id}&patientId=${apt?.patientId}&doctorId=${apt?.doctorId}`);
+  };
+
+  const sendReminderEmail = async () => {
+    if (!apt?.Patient?.email) return;
+    setBusy(true);
+    setEmailStatus('');
+    const { subject, html } = appointmentReminderEmail({
+      hospitalName: settings.hospitalName,
+      patientName: apt.Patient.fullName,
+      doctorName: apt.User?.fullName || 'your doctor',
+      scheduledAt: apt.scheduledAt,
+      reason: apt.reason,
+    });
+    const result = await sendEmail({ to: apt.Patient.email, subject, html });
+    setEmailStatus(result.success ? 'Reminder email sent.' : `Failed to send: ${result.error}`);
+    setBusy(false);
   };
 
   if (loading) return <div className="text-gray-500">Loading…</div>;
@@ -111,7 +131,13 @@ export default function AppointmentDetailPage() {
               <XCircle className="w-4 h-4" />Cancel Appointment
             </Button>
           )}
+          {canManageAppointments(user?.role) && !['COMPLETED', 'CANCELLED'].includes(apt.status) && apt.Patient?.email && (
+            <Button onClick={sendReminderEmail} disabled={busy} variant="outline" className="gap-2 text-indigo-600 border-indigo-300 hover:bg-indigo-50">
+              <Mail className="w-4 h-4" />Send Reminder Email
+            </Button>
+          )}
         </div>
+        {emailStatus && <p className="text-sm text-gray-500">{emailStatus}</p>}
       </div>
     </div>
   );
