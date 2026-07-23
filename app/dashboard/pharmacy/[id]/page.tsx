@@ -8,7 +8,7 @@ import { useAuth } from '@/lib/auth-context';
 import { canDispense } from '@/lib/permissions';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, ExternalLink } from 'lucide-react';
 
 export default function DispensePrescriptionPage() {
   const params = useParams<{ id: string }>();
@@ -20,6 +20,9 @@ export default function DispensePrescriptionPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [showExternalForm, setShowExternalForm] = useState(false);
+  const [externalNotes, setExternalNotes] = useState('');
+  const [savingExternal, setSavingExternal] = useState(false);
 
   const load = async () => {
     const { data, error: fetchError } = await supabase
@@ -64,6 +67,25 @@ export default function DispensePrescriptionPage() {
   };
 
   useEffect(() => { load(); }, [params.id]);
+
+  const markFilledExternally = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingExternal(true);
+    setError('');
+
+    const { error: dispenseError } = await supabase.from('Dispense').insert({
+      prescriptionId: params.id,
+      dispensedById: user?.id,
+      dispensedAt: new Date().toISOString(),
+      filledExternally: true,
+      notes: externalNotes || null,
+    });
+
+    setSavingExternal(false);
+    if (dispenseError) { setError(dispenseError.message); return; }
+    setShowExternalForm(false);
+    await load();
+  };
 
   const handleDispense = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,6 +132,7 @@ export default function DispensePrescriptionPage() {
   if (!prescription) return <p className="text-gray-400">{error || 'Prescription not found'}</p>;
 
   const alreadyDispensed = prescription.Dispense?.length > 0;
+  const filledExternally = prescription.Dispense?.[0]?.filledExternally;
 
   return (
     <div className="space-y-6">
@@ -123,8 +146,8 @@ export default function DispensePrescriptionPage() {
             <h1 className="text-2xl font-bold text-white">{prescription.Encounter?.Patient?.fullName}</h1>
             <p className="text-gray-400 mt-1">MRN: {prescription.Encounter?.Patient?.mrn}</p>
           </div>
-          <Badge className={alreadyDispensed ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}>
-            {alreadyDispensed ? 'Dispensed' : 'Pending'}
+          <Badge className={alreadyDispensed ? (filledExternally ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800') : 'bg-amber-100 text-amber-800'}>
+            {alreadyDispensed ? (filledExternally ? 'Filled Externally' : 'Dispensed') : 'Pending'}
           </Badge>
         </div>
 
@@ -163,23 +186,57 @@ export default function DispensePrescriptionPage() {
               );
             })}
             <Button type="submit" disabled={saving} className="gap-2 gradient-primary"><Save className="w-4 h-4" />{saving ? 'Dispensing...' : 'Confirm Dispense'}</Button>
+
+            <div className="pt-4 border-t border-white/10">
+              {!showExternalForm ? (
+                <button type="button" onClick={() => setShowExternalForm(true)} className="text-sm text-gray-400 hover:text-white flex items-center gap-1">
+                  <ExternalLink className="w-3.5 h-3.5" />Patient is filling this at another pharmacy instead
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-300">This won't touch your inventory — it just marks the prescription as closed out.</p>
+                  <input
+                    placeholder="Notes (optional — e.g. pharmacy name)"
+                    value={externalNotes}
+                    onChange={(e) => setExternalNotes(e.target.value)}
+                    className="glass-input w-full px-3 py-2 rounded-lg text-white text-sm"
+                  />
+                  <div className="flex gap-2">
+                    <Button type="button" onClick={markFilledExternally} disabled={savingExternal} variant="outline" className="gap-2 text-blue-300 border-blue-400/50">
+                      <ExternalLink className="w-4 h-4" />{savingExternal ? 'Saving...' : 'Mark as Filled Externally'}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => setShowExternalForm(false)}>Cancel</Button>
+                  </div>
+                </div>
+              )}
+            </div>
           </form>
         )}
 
         {alreadyDispensed && (
           <div className="space-y-3">
-            <h3 className="font-semibold text-white">Dispensed Items</h3>
-            {prescription.Dispense.map((d: any) => (
-              <div key={d.id} className="space-y-2">
-                <p className="text-xs text-gray-400">By {d.User?.fullName} • {new Date(d.dispensedAt).toLocaleString()}</p>
-                {(d.DispenseItem || []).map((di: any) => (
-                  <div key={di.id} className="bg-white/5 rounded-lg px-4 py-3 flex justify-between text-sm">
-                    <span className="text-white">{di.InventoryItem?.Drug?.name} {di.InventoryItem?.Drug?.strength}</span>
-                    <span className="text-gray-400">Qty {di.quantity}</span>
+            {filledExternally ? (
+              <div className="bg-blue-500/10 border border-blue-400/30 rounded-lg p-4 space-y-1">
+                <p className="text-blue-200 font-medium flex items-center gap-2"><ExternalLink className="w-4 h-4" />Filled at an external pharmacy</p>
+                <p className="text-xs text-gray-400">By {prescription.Dispense[0].User?.fullName} • {new Date(prescription.Dispense[0].dispensedAt).toLocaleString()}</p>
+                {prescription.Dispense[0].notes && <p className="text-sm text-gray-300 mt-2">{prescription.Dispense[0].notes}</p>}
+              </div>
+            ) : (
+              <>
+                <h3 className="font-semibold text-white">Dispensed Items</h3>
+                {prescription.Dispense.map((d: any) => (
+                  <div key={d.id} className="space-y-2">
+                    <p className="text-xs text-gray-400">By {d.User?.fullName} • {new Date(d.dispensedAt).toLocaleString()}</p>
+                    {(d.DispenseItem || []).map((di: any) => (
+                      <div key={di.id} className="bg-white/5 rounded-lg px-4 py-3 flex justify-between text-sm">
+                        <span className="text-white">{di.InventoryItem?.Drug?.name} {di.InventoryItem?.Drug?.strength}</span>
+                        <span className="text-gray-400">Qty {di.quantity}</span>
+                      </div>
+                    ))}
                   </div>
                 ))}
-              </div>
-            ))}
+              </>
+            )}
           </div>
         )}
       </div>

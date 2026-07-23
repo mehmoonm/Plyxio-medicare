@@ -16,7 +16,7 @@ export default function PharmacyQueuePage() {
     (async () => {
       const { data } = await supabase
         .from('Prescription')
-        .select('*, Encounter(patientId, Patient(fullName, mrn)), PrescriptionItem(*, Drug(name, strength)), Dispense(id, dispensedAt)')
+        .select('*, Encounter(patientId, Patient(fullName, mrn)), PrescriptionItem(*, Drug(name, strength)), Dispense(id, dispensedAt, filledExternally)')
         .order('createdAt', { ascending: false });
       setPrescriptions(data || []);
       setLoading(false);
@@ -54,8 +54,8 @@ export default function PharmacyQueuePage() {
                     {(p.PrescriptionItem || []).map((i: any) => i.Drug?.name).join(', ')} • {new Date(p.createdAt).toLocaleDateString()}
                   </p>
                 </div>
-                <Badge className={p.Dispense?.length > 0 ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}>
-                  {p.Dispense?.length > 0 ? 'Dispensed' : 'Pending'}
+                <Badge className={p.Dispense?.length > 0 ? (p.Dispense[0]?.filledExternally ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800') : 'bg-amber-100 text-amber-800'}>
+                  {p.Dispense?.length > 0 ? (p.Dispense[0]?.filledExternally ? 'Filled Externally' : 'Dispensed') : 'Pending'}
                 </Badge>
               </div>
             ))}
