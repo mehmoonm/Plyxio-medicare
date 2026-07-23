@@ -5,6 +5,22 @@ export type Role =
   | 'SUPER_ADMIN' | 'HOSPITAL_ADMIN' | 'DOCTOR' | 'NURSE' | 'RECEPTIONIST'
   | 'PHARMACIST' | 'LAB_TECHNICIAN' | 'RADIOLOGIST' | 'BILLING_CLERK' | 'ACCOUNTANT';
 
+export interface DbHospital {
+  id: string;
+  name: string;
+  slug: string | null;
+  logoUrl: string | null;
+  primaryColor: string | null;
+  subscriptionStatus: 'TRIAL' | 'PENDING_APPROVAL' | 'ACTIVE' | 'SUSPENDED' | 'CANCELLED';
+  subscriptionPlan: string | null;
+  paymentMethod: string | null;
+  pendingAdminEmail: string | null;
+  pendingAdminName: string | null;
+  approvedAt: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
+
 export interface DbUser {
   id: string;
   hospitalId: string | null;

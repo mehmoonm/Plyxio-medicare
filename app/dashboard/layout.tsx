@@ -9,6 +9,7 @@ import { useAppointmentReminders, type UpcomingAppointmentReminder } from '@/lib
 import { Sidebar } from '@/components/dashboard/sidebar';
 import { Header } from '@/components/dashboard/header';
 import { NotificationPermissionBanner } from '@/components/notification-permission-banner';
+import { SubscriptionGate } from '@/components/dashboard/subscription-gate';
 
 export default function DashboardLayout({
   children,
@@ -23,8 +24,12 @@ export default function DashboardLayout({
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.push('/login');
+    } else if (!loading && user?.role === 'SUPER_ADMIN') {
+      // Platform-level admins aren't tied to a single hospital -- they
+      // manage every hospital's subscription from a separate area.
+      router.push('/platform');
     }
-  }, [isAuthenticated, loading, router]);
+  }, [isAuthenticated, loading, user, router]);
 
   // Close the mobile drawer whenever the route changes
   useEffect(() => {
@@ -70,7 +75,7 @@ export default function DashboardLayout({
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || user?.role === 'SUPER_ADMIN') {
     return null;
   }
 
@@ -82,8 +87,10 @@ export default function DashboardLayout({
           <Header onMenuClick={() => setSidebarOpen((v) => !v)} />
           <main className="flex-1 overflow-auto" style={{ backgroundImage: 'var(--main-gradient)' }}>
             <div className="p-4 sm:p-6">
-              <NotificationPermissionBanner />
-              {children}
+              <SubscriptionGate>
+                <NotificationPermissionBanner />
+                {children}
+              </SubscriptionGate>
             </div>
           </main>
         </div>

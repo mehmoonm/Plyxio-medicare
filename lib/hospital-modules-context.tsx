@@ -20,6 +20,7 @@ interface ModulesContextType {
   loading: boolean;
   isEnabled: (key: ModuleKey) => boolean;
   updateModules: (updates: Partial<Record<ModuleKey, boolean>>) => Promise<{ error?: string }>;
+  subscriptionStatus: string | null;
 }
 
 const ModulesContext = createContext<ModulesContextType | undefined>(undefined);
@@ -27,14 +28,16 @@ const ModulesContext = createContext<ModulesContextType | undefined>(undefined);
 export function ModulesProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [modules, setModules] = useState<Record<ModuleKey, boolean>>(DEFAULT_MODULES);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     if (!user?.hospitalId) { setLoading(false); return; }
-    const { data } = await supabase.from('Hospital').select('enabledModules').eq('id', user.hospitalId).single();
+    const { data } = await supabase.from('Hospital').select('enabledModules, subscriptionStatus').eq('id', user.hospitalId).single();
     if (data?.enabledModules) {
       setModules({ ...DEFAULT_MODULES, ...data.enabledModules });
     }
+    setSubscriptionStatus(data?.subscriptionStatus || null);
     setLoading(false);
   }, [user?.hospitalId]);
 
@@ -52,7 +55,7 @@ export function ModulesProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <ModulesContext.Provider value={{ modules, loading, isEnabled, updateModules }}>
+    <ModulesContext.Provider value={{ modules, loading, isEnabled, updateModules, subscriptionStatus }}>
       {children}
     </ModulesContext.Provider>
   );
