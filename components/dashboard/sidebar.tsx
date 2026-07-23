@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   BarChart3,
   Building2,
+  Wallet,
 } from 'lucide-react';
 import { useSettings } from '@/lib/settings-context';
 import { useModules, type ModuleKey } from '@/lib/hospital-modules-context';
@@ -41,6 +42,7 @@ const adminMenuItems: MenuItem[] = [
   { href: '/dashboard/staff', label: 'Staff', icon: UserCheck },
   { href: '/dashboard/departments', label: 'Departments', icon: Building2 },
   { href: '/dashboard/reports', label: 'Reports', icon: BarChart3 },
+  { href: '/dashboard/finances', label: 'Finances', icon: Wallet },
   { href: '/dashboard/audit-log', label: 'Audit Log', icon: ShieldCheck },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ];
@@ -81,6 +83,11 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
   if (user?.role === 'HOSPITAL_ADMIN' || user?.role === 'SUPER_ADMIN') menuItems = adminMenuItems;
   else if (user?.role === 'DOCTOR') menuItems = doctorMenuItems;
   else if (user?.role === 'RECEPTIONIST') menuItems = patientMenuItems;
+  else if (user?.role === 'ACCOUNTANT') menuItems = [
+    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/dashboard/finances', label: 'Finances', icon: Wallet },
+    { href: '/dashboard/billing', label: 'Billing', icon: FileText, moduleKey: 'billing' },
+  ];
   else menuItems = staffMenuItems;
 
   menuItems = menuItems.filter((item) => !item.moduleKey || isEnabled(item.moduleKey));

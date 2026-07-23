@@ -82,3 +82,8 @@ export function canManageAllergies(role?: Role | null) {
 export function canManageDepartments(role?: Role | null) {
   return isAdmin(role);
 }
+
+// Matches the DB's payroll_admin_write/expense_admin_all policies
+export function canManageFinances(role?: Role | null) {
+  return !!role && [...ADMIN, 'ACCOUNTANT'].includes(role);
+}

@@ -25,6 +25,7 @@ export default function NewStaffPage() {
   const [departments, setDepartments] = useState<any[]>([]);
   const [form, setForm] = useState({
     fullName: '', email: '', phone: '', role: 'DOCTOR', specialty: '', licenseNo: '', departmentId: '',
+    compensationType: 'FIXED', fixedSalaryAmount: '', perPatientRate: '',
   });
 
   useEffect(() => {
@@ -55,6 +56,9 @@ export default function NewStaffPage() {
       specialty: form.role === 'DOCTOR' ? form.specialty || null : null,
       licenseNo: form.licenseNo || null,
       departmentId: form.departmentId || null,
+      compensationType: form.compensationType,
+      fixedSalaryAmount: form.compensationType === 'FIXED' ? Number(form.fixedSalaryAmount) || null : null,
+      perPatientRate: form.compensationType === 'PER_PATIENT' ? Number(form.perPatientRate) || null : null,
       passwordHash: 'PENDING_INVITE',
       isActive: true,
     }).select().single();
@@ -134,6 +138,26 @@ export default function NewStaffPage() {
             </div>
           </div>
         )}
+
+        <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+          <label className="text-sm font-semibold text-gray-700 block">Compensation</label>
+          <select name="compensationType" value={form.compensationType} onChange={handleChange} className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white">
+            <option value="FIXED">Fixed Salary</option>
+            <option value="PER_PATIENT">Per Patient Seen</option>
+          </select>
+          {form.compensationType === 'FIXED' ? (
+            <div>
+              <label className="text-sm font-semibold text-gray-700 block mb-2">Monthly Salary (Rs)</label>
+              <Input name="fixedSalaryAmount" type="number" min={0} value={form.fixedSalaryAmount} onChange={handleChange} placeholder="e.g. 80000" />
+            </div>
+          ) : (
+            <div>
+              <label className="text-sm font-semibold text-gray-700 block mb-2">Rate per Completed Appointment (Rs)</label>
+              <Input name="perPatientRate" type="number" min={0} value={form.perPatientRate} onChange={handleChange} placeholder="e.g. 500" />
+              <p className="text-xs text-gray-500 mt-1">Payroll will count their completed appointments each month and multiply by this rate.</p>
+            </div>
+          )}
+        </div>
 
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
           Note: this creates the staff directory profile only. Login access needs to be set up separately via Supabase Auth.

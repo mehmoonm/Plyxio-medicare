@@ -52,6 +52,9 @@ export default function EditStaffPage() {
         departmentId: form.departmentId || null,
         isActive: form.isActive,
         messagingEnabled: form.messagingEnabled,
+        compensationType: form.compensationType,
+        fixedSalaryAmount: form.compensationType === 'FIXED' ? Number(form.fixedSalaryAmount) || null : null,
+        perPatientRate: form.compensationType === 'PER_PATIENT' ? Number(form.perPatientRate) || null : null,
       })
       .eq('id', params.id);
     setLoading(false);
@@ -117,6 +120,26 @@ export default function EditStaffPage() {
             <input type="checkbox" name="messagingEnabled" checked={!!form.messagingEnabled} onChange={handleChange} className="w-4 h-4" />
             <span className="text-sm font-semibold text-gray-700">Allow patients to message this doctor via the portal</span>
           </label>
+        )}
+        {isAdmin(user?.role) && (
+          <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+            <label className="text-sm font-semibold text-gray-700 block">Compensation</label>
+            <select name="compensationType" value={form.compensationType || 'FIXED'} onChange={handleChange} className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white">
+              <option value="FIXED">Fixed Salary</option>
+              <option value="PER_PATIENT">Per Patient Seen</option>
+            </select>
+            {(form.compensationType || 'FIXED') === 'FIXED' ? (
+              <div>
+                <label className="text-sm font-semibold text-gray-700 block mb-2">Monthly Salary (Rs)</label>
+                <Input name="fixedSalaryAmount" type="number" min={0} value={form.fixedSalaryAmount || ''} onChange={handleChange} placeholder="e.g. 80000" />
+              </div>
+            ) : (
+              <div>
+                <label className="text-sm font-semibold text-gray-700 block mb-2">Rate per Completed Appointment (Rs)</label>
+                <Input name="perPatientRate" type="number" min={0} value={form.perPatientRate || ''} onChange={handleChange} placeholder="e.g. 500" />
+              </div>
+            )}
+          </div>
         )}
         <label className="flex items-center gap-2">
           <input type="checkbox" name="isActive" checked={!!form.isActive} onChange={handleChange} className="w-4 h-4" />

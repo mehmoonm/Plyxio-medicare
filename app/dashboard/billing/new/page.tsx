@@ -8,16 +8,27 @@ import { useAuth } from '@/lib/auth-context';
 import type { DbPatient } from '@/lib/supabase/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Save, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, Wand2 } from 'lucide-react';
 import { canManageBilling } from '@/lib/permissions';
 import { RoleGuard } from '@/components/dashboard/role-guard';
 import { QuickAddPatientModal } from '@/components/dashboard/quick-add-patient-modal';
+
+const CATEGORIES = ['Consultation', 'Bed Charges', 'Pharmacy', 'Lab', 'Radiology', 'Procedure', 'Other'];
 
 interface LineItem {
   description: string;
   category: string;
   quantity: number;
   unitPrice: number;
+}
+
+interface Suggestion {
+  key: string;
+  sourceType: 'dispense' | 'lab' | 'radiology' | 'admission';
+  sourceId: string;
+  description: string;
+  category: string;
+  amount: number;
 }
 
 export default function NewInvoicePage() {
@@ -31,6 +42,10 @@ export default function NewInvoicePage() {
   const [items, setItems] = useState<LineItem[]>([{ description: '', category: 'Consultation', quantity: 1, unitPrice: 0 }]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [selectedSuggestions, setSelectedSuggestions] = useState<Set<string>>(new Set());
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [billedSourceRefs, setBilledSourceRefs] = useState<{ type: string; id: string }[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -38,6 +53,87 @@ export default function NewInvoicePage() {
       setPatients((data as any) || []);
     })();
   }, []);
+
+  useEffect(() => {
+    if (!patientId) { setSuggestions([]); return; }
+    (async () => {
+      setLoadingSuggestions(true);
+      const found: Suggestion[] = [];
+
+      // Unbilled pharmacy dispenses
+      const { data: dispenses } = await supabase
+        .from('Dispense')
+        .select('id, filledExternally, Prescription(Encounter(patientId)), DispenseItem(quantity, InventoryItem(unitPrice, Drug(name)))')
+        .eq('billed', false);
+      for (const d of dispenses || []) {
+        if ((d as any).Prescription?.Encounter?.patientId !== patientId || d.filledExternally) continue;
+        const total = ((d as any).DispenseItem || []).reduce((s: number, di: any) => s + (di.quantity || 0) * Number(di.InventoryItem?.unitPrice || 0), 0);
+        if (total <= 0) continue;
+        const names = ((d as any).DispenseItem || []).map((di: any) => di.InventoryItem?.Drug?.name).filter(Boolean).join(', ');
+        found.push({ key: `dispense-${d.id}`, sourceType: 'dispense', sourceId: d.id, description: `Pharmacy: ${names || 'Dispensed items'}`, category: 'Pharmacy', amount: total });
+      }
+
+      // Unbilled lab orders
+      const { data: labOrders } = await supabase
+        .from('LabOrder')
+        .select('id, patientId, LabOrderItem(LabTestCatalog(name, price))')
+        .eq('patientId', patientId)
+        .eq('billed', false);
+      for (const lo of labOrders || []) {
+        const total = ((lo as any).LabOrderItem || []).reduce((s: number, i: any) => s + Number(i.LabTestCatalog?.price || 0), 0);
+        if (total <= 0) continue;
+        const names = ((lo as any).LabOrderItem || []).map((i: any) => i.LabTestCatalog?.name).filter(Boolean).join(', ');
+        found.push({ key: `lab-${lo.id}`, sourceType: 'lab', sourceId: lo.id, description: `Lab: ${names || 'Tests'}`, category: 'Lab', amount: total });
+      }
+
+      // Unbilled radiology orders (only if a cost was set)
+      const { data: radOrders } = await supabase
+        .from('RadiologyOrder')
+        .select('id, patientId, studyType, bodyPart, cost')
+        .eq('patientId', patientId)
+        .eq('billed', false)
+        .not('cost', 'is', null);
+      for (const ro of radOrders || []) {
+        if (!ro.cost || Number(ro.cost) <= 0) continue;
+        found.push({ key: `radiology-${ro.id}`, sourceType: 'radiology', sourceId: ro.id, description: `Radiology: ${ro.studyType}${ro.bodyPart ? ` (${ro.bodyPart})` : ''}`, category: 'Radiology', amount: Number(ro.cost) });
+      }
+
+      // Unbilled admission bed charges
+      const { data: admissions } = await supabase
+        .from('Admission')
+        .select('id, patientId, admittedAt, dischargedAt, bedChargesInvoiced, Bed(bedNumber, dailyRate)')
+        .eq('patientId', patientId)
+        .eq('bedChargesInvoiced', false);
+      for (const adm of admissions || []) {
+        const rate = Number((adm as any).Bed?.dailyRate || 0);
+        if (rate <= 0) continue;
+        const start = new Date(adm.admittedAt).getTime();
+        const end = adm.dischargedAt ? new Date(adm.dischargedAt).getTime() : Date.now();
+        const days = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
+        found.push({ key: `admission-${adm.id}`, sourceType: 'admission', sourceId: adm.id, description: `Bed Charges: ${(adm as any).Bed?.bedNumber || ''} — ${days} day${days > 1 ? 's' : ''}`, category: 'Bed Charges', amount: rate * days });
+      }
+
+      setSuggestions(found);
+      setLoadingSuggestions(false);
+    })();
+  }, [patientId]);
+
+  const toggleSuggestion = (key: string) => {
+    setSelectedSuggestions((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+
+  const addSelectedSuggestions = () => {
+    const toAdd = suggestions.filter((s) => selectedSuggestions.has(s.key));
+    const newItems = toAdd.map((s) => ({ description: s.description, category: s.category, quantity: 1, unitPrice: s.amount }));
+    setItems((prev) => [...prev.filter((it) => it.description || it.unitPrice), ...newItems]);
+    setBilledSourceRefs((prev) => [...prev, ...toAdd.map((s) => ({ type: s.sourceType, id: s.sourceId }))]);
+    setSuggestions((prev) => prev.filter((s) => !selectedSuggestions.has(s.key)));
+    setSelectedSuggestions(new Set());
+  };
 
   const updateItem = (i: number, field: keyof LineItem, value: string | number) => {
     const next = [...items];
@@ -96,8 +192,17 @@ export default function NewInvoicePage() {
       }))
     );
 
+    if (itemsError) { setLoading(false); setError(itemsError.message); return; }
+
+    // Mark whatever suggested charges we included so they can't be billed twice
+    for (const ref of billedSourceRefs) {
+      if (ref.type === 'dispense') await supabase.from('Dispense').update({ billed: true }).eq('id', ref.id);
+      if (ref.type === 'lab') await supabase.from('LabOrder').update({ billed: true }).eq('id', ref.id);
+      if (ref.type === 'radiology') await supabase.from('RadiologyOrder').update({ billed: true }).eq('id', ref.id);
+      if (ref.type === 'admission') await supabase.from('Admission').update({ bedChargesInvoiced: true }).eq('id', ref.id);
+    }
+
     setLoading(false);
-    if (itemsError) { setError(itemsError.message); return; }
     router.push('/dashboard/billing');
   };
 
@@ -130,6 +235,32 @@ export default function NewInvoicePage() {
           </select>
         </div>
 
+        {patientId && (loadingSuggestions || suggestions.length > 0) && (
+          <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 space-y-2">
+            <p className="text-sm font-semibold text-indigo-900 flex items-center gap-2"><Wand2 className="w-4 h-4" />Unbilled Charges Found</p>
+            {loadingSuggestions ? (
+              <p className="text-sm text-indigo-700">Checking for unbilled pharmacy, lab, radiology, and bed charges…</p>
+            ) : (
+              <>
+                <div className="space-y-1">
+                  {suggestions.map((s) => (
+                    <label key={s.key} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 cursor-pointer">
+                      <span className="flex items-center gap-2 text-sm text-gray-700">
+                        <input type="checkbox" checked={selectedSuggestions.has(s.key)} onChange={() => toggleSuggestion(s.key)} className="w-4 h-4" />
+                        {s.description}
+                      </span>
+                      <span className="text-sm font-semibold text-gray-900">Rs {s.amount.toLocaleString()}</span>
+                    </label>
+                  ))}
+                </div>
+                <Button type="button" size="sm" onClick={addSelectedSuggestions} disabled={selectedSuggestions.size === 0} className="gap-1">
+                  <Plus className="w-3 h-3" />Add Selected to Invoice
+                </Button>
+              </>
+            )}
+          </div>
+        )}
+
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <label className="text-sm font-semibold text-gray-700">Line Items</label>
@@ -137,9 +268,11 @@ export default function NewInvoicePage() {
           </div>
           <div className="overflow-x-auto space-y-2 pb-1">
             {items.map((item, i) => (
-              <div key={i} className="min-w-[600px] grid grid-cols-12 gap-2 items-center">
-                <Input className="col-span-5" placeholder="Description" value={item.description} onChange={(e) => updateItem(i, 'description', e.target.value)} />
-                <Input className="col-span-2" placeholder="Category" value={item.category} onChange={(e) => updateItem(i, 'category', e.target.value)} />
+              <div key={i} className="min-w-[650px] grid grid-cols-12 gap-2 items-center">
+                <Input className="col-span-4" placeholder="Description" value={item.description} onChange={(e) => updateItem(i, 'description', e.target.value)} />
+                <select className="col-span-3 px-2 py-2 rounded-lg border border-gray-300 text-sm" value={item.category} onChange={(e) => updateItem(i, 'category', e.target.value)}>
+                  {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
                 <Input className="col-span-2" type="number" min={1} placeholder="Qty" value={item.quantity} onChange={(e) => updateItem(i, 'quantity', Number(e.target.value))} />
                 <Input className="col-span-2" type="number" min={0} placeholder="Unit Price" value={item.unitPrice} onChange={(e) => updateItem(i, 'unitPrice', Number(e.target.value))} />
                 <button type="button" onClick={() => removeItem(i)} className="col-span-1 text-red-500 hover:text-red-700">

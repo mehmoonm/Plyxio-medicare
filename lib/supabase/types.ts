@@ -33,6 +33,39 @@ export interface DbUser {
   licenseNo: string | null;
   isActive: boolean;
   messagingEnabled?: boolean;
+  compensationType?: 'FIXED' | 'PER_PATIENT';
+  fixedSalaryAmount?: number | null;
+  perPatientRate?: number | null;
+}
+
+export interface DbPayrollRecord {
+  id: string;
+  hospitalId: string;
+  userId: string;
+  periodMonth: number;
+  periodYear: number;
+  compensationType: 'FIXED' | 'PER_PATIENT';
+  patientCount: number;
+  baseAmount: number;
+  bonus: number;
+  deductions: number;
+  totalAmount: number;
+  status: 'DRAFT' | 'APPROVED' | 'PAID';
+  generatedAt: string;
+  approvedAt: string | null;
+  paidAt: string | null;
+  User?: DbUser;
+}
+
+export interface DbExpense {
+  id: string;
+  hospitalId: string;
+  category: string;
+  description: string | null;
+  amount: number;
+  expenseDate: string;
+  recordedById: string | null;
+  createdAt: string;
 }
 
 export interface DbMessage {

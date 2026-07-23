@@ -1,0 +1,129 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase/client';
+import { useAuth } from '@/lib/auth-context';
+import { canManageFinances } from '@/lib/permissions';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Receipt, Plus, Trash2 } from 'lucide-react';
+
+const CATEGORIES = ['Rent', 'Utilities', 'Salaries', 'Equipment', 'Maintenance', 'Supplies', 'Marketing', 'Other'];
+
+export default function ExpensesPage() {
+  const { user } = useAuth();
+  const [expenses, setExpenses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [form, setForm] = useState({ category: 'Rent', description: '', amount: '', expenseDate: new Date().toISOString().slice(0, 10) });
+
+  const load = async () => {
+    const { data } = await supabase.from('Expense').select('*').order('expenseDate', { ascending: false }).limit(200);
+    setExpenses(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.amount || Number(form.amount) <= 0) { setError('Enter a valid amount.'); return; }
+    setSaving(true);
+    setError('');
+    const { error: insertError } = await supabase.from('Expense').insert({
+      hospitalId: user?.hospitalId,
+      category: form.category,
+      description: form.description || null,
+      amount: Number(form.amount),
+      expenseDate: form.expenseDate,
+      recordedById: user?.id,
+    });
+    setSaving(false);
+    if (insertError) { setError(insertError.message); return; }
+    setForm({ category: 'Rent', description: '', amount: '', expenseDate: new Date().toISOString().slice(0, 10) });
+    setShowForm(false);
+    await load();
+  };
+
+  const handleDelete = async (id: string) => {
+    await supabase.from('Expense').delete().eq('id', id);
+    await load();
+  };
+
+  if (!canManageFinances(user?.role)) {
+    return <div className="text-gray-400">This page is only available to admins and accountants.</div>;
+  }
+
+  const thisMonthTotal = expenses
+    .filter((e) => {
+      const d = new Date(e.expenseDate);
+      const now = new Date();
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    })
+    .reduce((s, e) => s + Number(e.amount), 0);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold heading-gradient flex items-center gap-2">
+            <Receipt className="w-7 h-7 text-indigo-300" />Expenses
+          </h1>
+          <p className="text-gray-400 mt-2">Rent, utilities, supplies, and other operating costs</p>
+        </div>
+        <Button onClick={() => setShowForm((v) => !v)} className="gap-2 gradient-primary"><Plus className="w-4 h-4" />Add Expense</Button>
+      </div>
+
+      <div className="glass-card rounded-2xl p-6">
+        <p className="text-xs text-gray-400 uppercase tracking-wider">This Month</p>
+        <p className="text-2xl font-bold text-white">Rs {thisMonthTotal.toLocaleString()}</p>
+      </div>
+
+      {error && <div className="bg-red-500/20 border border-red-500/50 text-red-200 p-3 rounded-lg text-sm">{error}</div>}
+
+      {showForm && (
+        <form onSubmit={handleAdd} className="glass-card rounded-2xl p-6 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="glass-input px-4 py-3 rounded-lg text-white">
+              {CATEGORIES.map((c) => <option key={c} value={c} className="text-black">{c}</option>)}
+            </select>
+            <Input type="number" min={0} placeholder="Amount (Rs)" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} className="glass-input px-4 py-3 rounded-lg text-white" />
+            <Input type="date" value={form.expenseDate} onChange={(e) => setForm({ ...form, expenseDate: e.target.value })} className="glass-input px-4 py-3 rounded-lg text-white" />
+            <Input placeholder="Description (optional)" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="glass-input px-4 py-3 rounded-lg text-white" />
+          </div>
+          <div className="flex gap-2">
+            <Button type="submit" disabled={saving} className="gradient-primary">{saving ? 'Saving...' : 'Save Expense'}</Button>
+            <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
+          </div>
+        </form>
+      )}
+
+      <div className="glass-card rounded-2xl overflow-hidden">
+        {loading ? (
+          <p className="text-gray-400 p-6">Loading…</p>
+        ) : expenses.length === 0 ? (
+          <p className="text-gray-400 p-6">No expenses recorded yet</p>
+        ) : (
+          <div className="divide-y divide-white/10">
+            {expenses.map((e) => (
+              <div key={e.id} className="p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-white font-medium">{e.category}{e.description ? ` — ${e.description}` : ''}</p>
+                  <p className="text-xs text-gray-400">{new Date(e.expenseDate).toLocaleDateString()}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <p className="text-white font-semibold">Rs {Number(e.amount).toLocaleString()}</p>
+                  <button onClick={() => handleDelete(e.id)} className="p-2 rounded-lg bg-red-600/30 hover:bg-red-600/50 text-red-300">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
