@@ -77,3 +77,8 @@ export function canManageDocuments(role?: Role | null) {
 export function canManageAllergies(role?: Role | null) {
   return !!role && [...ADMIN, 'DOCTOR', 'NURSE'].includes(role);
 }
+
+// Matches the DB's dept_admin_write/dept_admin_update/dept_admin_delete policies
+export function canManageDepartments(role?: Role | null) {
+  return isAdmin(role);
+}

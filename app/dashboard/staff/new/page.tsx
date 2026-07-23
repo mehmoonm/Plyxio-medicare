@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
@@ -20,9 +20,17 @@ export default function NewStaffPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [departments, setDepartments] = useState<any[]>([]);
   const [form, setForm] = useState({
-    fullName: '', email: '', phone: '', role: 'DOCTOR', specialty: '', licenseNo: '',
+    fullName: '', email: '', phone: '', role: 'DOCTOR', specialty: '', licenseNo: '', departmentId: '',
   });
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from('Department').select('*').order('name');
+      setDepartments(data || []);
+    })();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -44,6 +52,7 @@ export default function NewStaffPage() {
       role: form.role,
       specialty: form.role === 'DOCTOR' ? form.specialty || null : null,
       licenseNo: form.licenseNo || null,
+      departmentId: form.departmentId || null,
       passwordHash: 'PENDING_INVITE',
       isActive: true,
     }).select().single();
@@ -99,6 +108,14 @@ export default function NewStaffPage() {
           <label className="text-sm font-semibold text-gray-700 block mb-2">Role *</label>
           <select name="role" value={form.role} onChange={handleChange} className="w-full px-4 py-3 rounded-lg border border-gray-300">
             {ROLES.map((r) => <option key={r} value={r}>{r.replace('_', ' ')}</option>)}
+          </select>
+        </div>
+
+        <div>
+          <label className="text-sm font-semibold text-gray-700 block mb-2">Department</label>
+          <select name="departmentId" value={form.departmentId} onChange={handleChange} className="w-full px-4 py-3 rounded-lg border border-gray-300">
+            <option value="">No department</option>
+            {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
         </div>
 

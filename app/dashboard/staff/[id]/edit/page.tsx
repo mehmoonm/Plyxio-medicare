@@ -15,11 +15,16 @@ export default function EditStaffPage() {
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState('');
   const [form, setForm] = useState<any>(null);
+  const [departments, setDepartments] = useState<any[]>([]);
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from('User').select('*').eq('id', params.id).single();
-      setForm(data);
+      const [userRes, deptRes] = await Promise.all([
+        supabase.from('User').select('*').eq('id', params.id).single(),
+        supabase.from('Department').select('*').order('name'),
+      ]);
+      setForm(userRes.data);
+      setDepartments(deptRes.data || []);
       setFetching(false);
     })();
   }, [params.id]);
@@ -40,6 +45,7 @@ export default function EditStaffPage() {
         phone: form.phone,
         specialty: form.specialty,
         licenseNo: form.licenseNo,
+        departmentId: form.departmentId || null,
         isActive: form.isActive,
         messagingEnabled: form.messagingEnabled,
       })
@@ -81,6 +87,13 @@ export default function EditStaffPage() {
         <div>
           <label className="text-sm font-semibold text-gray-700 block mb-2">Role (read-only)</label>
           <Input value={form.role?.replace('_', ' ')} disabled />
+        </div>
+        <div>
+          <label className="text-sm font-semibold text-gray-700 block mb-2">Department</label>
+          <select name="departmentId" value={form.departmentId || ''} onChange={handleChange} className="w-full px-4 py-3 rounded-lg border border-gray-300">
+            <option value="">No department</option>
+            {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
         </div>
         {form.role === 'DOCTOR' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

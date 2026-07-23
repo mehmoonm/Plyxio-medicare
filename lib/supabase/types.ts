@@ -192,6 +192,12 @@ export interface DbDispense {
   DispenseItem?: DbDispenseItem[];
 }
 
+export interface DbDepartment {
+  id: string;
+  hospitalId: string;
+  name: string;
+}
+
 export interface DbAllergy {
   id: string;
   patientId: string;

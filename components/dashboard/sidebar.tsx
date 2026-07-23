@@ -20,6 +20,7 @@ import {
   Pill,
   ShieldCheck,
   BarChart3,
+  Building2,
 } from 'lucide-react';
 import { useSettings } from '@/lib/settings-context';
 import { useModules, type ModuleKey } from '@/lib/hospital-modules-context';
@@ -38,6 +39,7 @@ const adminMenuItems: MenuItem[] = [
   { href: '/dashboard/inventory', label: 'Inventory', icon: Package, moduleKey: 'inventory' },
   { href: '/dashboard/pharmacy', label: 'Pharmacy', icon: Pill, moduleKey: 'inventory' },
   { href: '/dashboard/staff', label: 'Staff', icon: UserCheck },
+  { href: '/dashboard/departments', label: 'Departments', icon: Building2 },
   { href: '/dashboard/reports', label: 'Reports', icon: BarChart3 },
   { href: '/dashboard/audit-log', label: 'Audit Log', icon: ShieldCheck },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
