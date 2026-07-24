@@ -7,9 +7,10 @@ import { useSettings } from '@/lib/settings-context';
 import { currencySymbol } from '@/lib/currency';
 import { supabase } from '@/lib/supabase/client';
 import { canManageFinances } from '@/lib/permissions';
-import { TrendingUp, TrendingDown, Wallet, Receipt, ArrowRight, Scale, FileWarning } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wallet, Receipt, ArrowRight, Scale, FileWarning, BookOpen } from 'lucide-react';
 
 const SECTIONS = [
+  { href: '/dashboard/finances/ledger', title: 'Ledger', description: 'Every transaction — revenue, expenses, payroll — filterable by date, exportable', icon: BookOpen, color: 'text-amber-300' },
   { href: '/dashboard/reports', title: 'Revenue & Reports', description: 'Revenue trends, appointment volume, doctor performance', icon: TrendingUp, color: 'text-emerald-300' },
   { href: '/dashboard/finances/payroll', title: 'Payroll', description: 'Generate and manage staff compensation by pay period', icon: Wallet, color: 'text-indigo-300' },
   { href: '/dashboard/finances/expenses', title: 'Expenses', description: 'Rent, utilities, supplies, and other operating costs', icon: Receipt, color: 'text-cyan-300' },
@@ -92,7 +93,7 @@ export default function FinancesHubPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {SECTIONS.map(({ href, title, description, icon: Icon, color }) => (
           <Link key={href} href={href} className="glass-card rounded-2xl p-6 hover:bg-white/5 transition-colors group">
             <Icon className={`w-8 h-8 ${color} mb-3`} />
