@@ -9,6 +9,7 @@ import { UpcomingAppointments } from '@/components/dashboard/upcoming-appointmen
 import { Users, Calendar, FileText, Package, TrendingUp } from 'lucide-react';
 import { useSettings } from '@/lib/settings-context';
 import { currencySymbol } from '@/lib/currency';
+import { OnboardingChecklist } from '@/components/dashboard/onboarding-checklist';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -59,6 +60,8 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
+      {isAdmin && <OnboardingChecklist />}
+
       <div className="relative">
         <div className="flex items-center justify-between">
           <div>
