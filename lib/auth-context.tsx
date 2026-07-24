@@ -12,6 +12,9 @@ interface AuthContextType {
   user: DbUser | null;
   requestPasswordReset: (email: string) => Promise<void>;
   updatePassword: (newPassword: string) => Promise<void>;
+  mfaChallenge: { factorId: string; challengeId: string } | null;
+  verifyMfaCode: (code: string) => Promise<void>;
+  cancelMfaChallenge: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,6 +22,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<DbUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mfaChallenge, setMfaChallenge] = useState<{ factorId: string; challengeId: string } | null>(null);
 
   const loadProfile = async (authUserId: string) => {
     const { data, error } = await supabase
@@ -54,7 +58,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw new Error(error.message);
+
+    // If this account has 2FA enrolled, the session so far only reaches
+    // aal1 -- we need a verified TOTP code before it's actually usable.
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aal && aal.nextLevel === 'aal2' && aal.currentLevel !== aal.nextLevel) {
+      const { data: factors } = await supabase.auth.mfa.listFactors();
+      const totpFactor = factors?.totp?.find((f) => f.status === 'verified');
+      if (totpFactor) {
+        const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: totpFactor.id });
+        if (challengeError) throw new Error(challengeError.message);
+        setMfaChallenge({ factorId: totpFactor.id, challengeId: challenge.id });
+        return; // Wait for verifyMfaCode() before completing sign-in
+      }
+    }
+
     if (data.user) await loadProfile(data.user.id);
+  };
+
+  const verifyMfaCode = async (code: string) => {
+    if (!mfaChallenge) return;
+    const { error } = await supabase.auth.mfa.verify({
+      factorId: mfaChallenge.factorId,
+      challengeId: mfaChallenge.challengeId,
+      code,
+    });
+    if (error) throw new Error(error.message);
+    setMfaChallenge(null);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) await loadProfile(session.user.id);
+  };
+
+  const cancelMfaChallenge = () => {
+    setMfaChallenge(null);
+    supabase.auth.signOut();
   };
 
   const logout = () => {
@@ -83,6 +120,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         requestPasswordReset,
         updatePassword,
+        mfaChallenge,
+        verifyMfaCode,
+        cancelMfaChallenge,
       }}
     >
       {children}
