@@ -20,6 +20,8 @@ export const DEFAULT_ROLE_PAGES: Record<ShareableRole, PageKey[]> = {
   ACCOUNTANT: ['finances', 'billing'],
 };
 
+export type EditModule = 'admissions' | 'lab' | 'radiology' | 'inventory' | 'pharmacy';
+
 export interface BrandSettings {
   primaryColor: string;
   accentColor: string;
@@ -35,6 +37,7 @@ export interface BrandSettings {
   currency: string;
   taxLabel: string;
   rolePermissions: Partial<Record<ShareableRole, PageKey[]>>;
+  editPermissions: Partial<Record<ShareableRole, Partial<Record<EditModule, boolean>>>>;
 }
 
 const defaultSettings: BrandSettings = {
@@ -52,6 +55,7 @@ const defaultSettings: BrandSettings = {
   currency: 'PKR',
   taxLabel: 'Tax',
   rolePermissions: {},
+  editPermissions: {},
 };
 
 interface SettingsContextType {
@@ -100,7 +104,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     if (!user?.hospitalId) { setMounted(true); return; }
     const { data } = await supabase
       .from('Hospital')
-      .select('name, logoUrl, primaryColor, accentColor, phone, email, address, city, country, allowBillingClerkInvoiceEdit, currency, taxLabel, rolePermissions')
+      .select('name, logoUrl, primaryColor, accentColor, phone, email, address, city, country, allowBillingClerkInvoiceEdit, currency, taxLabel, rolePermissions, editPermissions')
       .eq('id', user.hospitalId)
       .single();
 
@@ -119,6 +123,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         currency: data.currency || defaultSettings.currency,
         taxLabel: data.taxLabel || defaultSettings.taxLabel,
         rolePermissions: data.rolePermissions || {},
+        editPermissions: data.editPermissions || {},
       };
       setSettings((s) => ({ ...s, ...merged }));
       applyColors(merged.primaryColor!, merged.accentColor!);
@@ -151,6 +156,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     if (newSettings.currency !== undefined) hospitalFields.currency = newSettings.currency;
     if (newSettings.taxLabel !== undefined) hospitalFields.taxLabel = newSettings.taxLabel;
     if (newSettings.rolePermissions !== undefined) hospitalFields.rolePermissions = newSettings.rolePermissions;
+    if (newSettings.editPermissions !== undefined) hospitalFields.editPermissions = newSettings.editPermissions;
 
     if (newSettings.primaryColor || newSettings.accentColor) {
       applyColors(updated.primaryColor, updated.accentColor);

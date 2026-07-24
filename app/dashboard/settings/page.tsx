@@ -7,9 +7,9 @@ import { useModules, type ModuleKey } from '@/lib/hospital-modules-context';
 import { isAdmin } from '@/lib/permissions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Upload, RotateCcw, Moon, Sun, Monitor, BedDouble, FlaskConical, Scan, Package, FileText, MessageCircle, Users, CreditCard } from 'lucide-react';
+import { ArrowLeft, Upload, RotateCcw, Moon, Sun, Monitor, BedDouble, FlaskConical, Scan, Package, FileText, MessageCircle, Users, CreditCard, Pencil } from 'lucide-react';
 import { CURRENCY_OPTIONS } from '@/lib/currency';
-import { DEFAULT_ROLE_PAGES, type ShareableRole, type PageKey } from '@/lib/settings-context';
+import { DEFAULT_ROLE_PAGES, type ShareableRole, type PageKey, type EditModule } from '@/lib/settings-context';
 import Link from 'next/link';
 
 const SHAREABLE_ROLES: { role: ShareableRole; label: string }[] = [
@@ -35,6 +35,24 @@ const PAGE_LABELS: Record<PageKey, string> = {
   messages: 'Messages',
   doctors: 'Doctors',
   finances: 'Finances',
+};
+
+const EDIT_MODULE_LABELS: Record<EditModule, string> = {
+  admissions: 'Admissions & Beds',
+  lab: 'Lab Orders',
+  radiology: 'Radiology',
+  inventory: 'Inventory',
+  pharmacy: 'Pharmacy Dispensing',
+};
+
+// Which roles actually have write access to each module, so the matrix
+// doesn't show meaningless combinations (e.g. a Pharmacist editing Lab Orders)
+const EDIT_MODULE_ROLES: Record<EditModule, ShareableRole[]> = {
+  admissions: ['DOCTOR', 'NURSE'],
+  lab: ['DOCTOR', 'LAB_TECHNICIAN'],
+  radiology: ['DOCTOR', 'RADIOLOGIST'],
+  inventory: ['PHARMACIST'],
+  pharmacy: ['PHARMACIST'],
 };
 
 const MODULE_LIST: { key: ModuleKey; label: string; description: string; icon: any }[] = [
@@ -64,6 +82,7 @@ export default function SettingsPage() {
   const [currency, setCurrency] = useState(settings.currency);
   const [taxLabel, setTaxLabel] = useState(settings.taxLabel);
   const [rolePermissions, setRolePermissions] = useState(settings.rolePermissions);
+  const [editPermissions, setEditPermissions] = useState(settings.editPermissions);
   const [activeTab, setActiveTab] = useState<'branding' | 'contact' | 'billing' | 'access'>('branding');
   const [saved, setSaved] = useState(false);
   const [moduleSaving, setModuleSaving] = useState<ModuleKey | null>(null);
@@ -87,6 +106,7 @@ export default function SettingsPage() {
     setCurrency(settings.currency);
     setTaxLabel(settings.taxLabel);
     setRolePermissions(settings.rolePermissions);
+    setEditPermissions(settings.editPermissions);
   }, [settings]);
 
   const toggleModule = async (key: ModuleKey) => {
@@ -103,6 +123,16 @@ export default function SettingsPage() {
     const updated = { ...rolePermissions, [role]: next };
     setRolePermissions(updated);
     updateSettings({ rolePermissions: updated });
+  };
+
+  const toggleEditPermission = (role: ShareableRole, module: EditModule) => {
+    const currentlyAllowed = editPermissions[role]?.[module] !== false;
+    const updated = {
+      ...editPermissions,
+      [role]: { ...editPermissions[role], [module]: !currentlyAllowed },
+    };
+    setEditPermissions(updated);
+    updateSettings({ editPermissions: updated });
   };
 
   const handleSave = () => {
@@ -538,6 +568,53 @@ export default function SettingsPage() {
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+
+          {/* Edit Permissions */}
+          {isAdmin(user?.role) && (
+            <div className="glass-card rounded-2xl p-6 space-y-4">
+              <div>
+                <h2 className="text-xl font-bold text-white flex items-center gap-2"><Pencil className="w-5 h-5 text-indigo-300" />Edit Permissions</h2>
+                <p className="text-sm text-slate-400 mt-1">
+                  Turn off editing for a role within a module -- they can still view, but can't create or change records. Enforced at the database level. Saves instantly.
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-[500px]">
+                  <thead>
+                    <tr className="text-left text-slate-400">
+                      <th className="py-2 pr-4">Module</th>
+                      <th className="py-2 px-2 text-center font-medium">Role</th>
+                      <th className="py-2 px-2 text-center font-medium">Can Edit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(Object.keys(EDIT_MODULE_LABELS) as EditModule[]).flatMap((module) =>
+                      EDIT_MODULE_ROLES[module].map((role) => {
+                        const allowed = editPermissions[role]?.[module] !== false;
+                        return (
+                          <tr key={`${module}-${role}`} className="border-t border-white/5">
+                            <td className="py-2.5 pr-4 text-white">{EDIT_MODULE_LABELS[module]}</td>
+                            <td className="py-2.5 px-2 text-center text-slate-300">{SHAREABLE_ROLES.find((r) => r.role === role)?.label}</td>
+                            <td className="py-2.5 px-2 text-center">
+                              <button
+                                onClick={() => toggleEditPermission(role, module)}
+                                className={`w-11 h-6 rounded-full transition-colors relative mx-auto ${allowed ? 'bg-indigo-600' : 'bg-gray-500/50'}`}
+                              >
+                                <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${allowed ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-xs text-slate-500 pt-2 border-t border-white/10">
+                Billing edit permissions (invoices) are controlled separately under "Modules & Billing" above.
+              </p>
             </div>
           )}
           </>
