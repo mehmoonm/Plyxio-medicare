@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth-context';
 import { isAdmin } from '@/lib/permissions';
@@ -41,6 +42,10 @@ export default function ReportsPage() {
   const [doctorStats, setDoctorStats] = useState<any[]>([]);
   const [categoryRevenue, setCategoryRevenue] = useState<{ category: string; amount: number }[]>([]);
   const [expenseByCategory, setExpenseByCategory] = useState<{ category: string; amount: number }[]>([]);
+  const [invoiceItemsRaw, setInvoiceItemsRaw] = useState<any[]>([]);
+  const [expensesRaw, setExpensesRaw] = useState<any[]>([]);
+  const [expandedRevenueCategory, setExpandedRevenueCategory] = useState<string | null>(null);
+  const [expandedExpenseCategory, setExpandedExpenseCategory] = useState<string | null>(null);
   const [departmentRevenue, setDepartmentRevenue] = useState<{ department: string; amount: number }[]>([]);
   const [departmentExpense, setDepartmentExpense] = useState<{ department: string; amount: number }[]>([]);
   const [topDiagnoses, setTopDiagnoses] = useState<{ diagnosis: string; count: number }[]>([]);
@@ -65,9 +70,9 @@ export default function ReportsPage() {
         supabase.from('Patient').select('createdAt').gte('createdAt', startIso).lte('createdAt', endIso),
         supabase.from('User').select('id, fullName').eq('role', 'DOCTOR').eq('isActive', true),
         supabase.from('Patient').select('id', { count: 'exact', head: true }),
-        supabase.from('InvoiceItem').select('category, amount, departmentId, Department(name), Invoice!inner(createdAt)').gte('Invoice.createdAt', startIso).lte('Invoice.createdAt', endIso),
+        supabase.from('InvoiceItem').select('id, category, amount, description, departmentId, Department(name), Invoice!inner(id, invoiceNo, createdAt, Patient(fullName))').gte('Invoice.createdAt', startIso).lte('Invoice.createdAt', endIso),
         supabase.from('Encounter').select('diagnosis').gte('createdAt', startIso).lte('createdAt', endIso).not('diagnosis', 'is', null),
-        supabase.from('Expense').select('category, amount, expenseDate, departmentId, Department(name)').gte('expenseDate', range.start).lte('expenseDate', range.end),
+        supabase.from('Expense').select('id, category, amount, expenseDate, description, departmentId, Department(name)').gte('expenseDate', range.start).lte('expenseDate', range.end),
       ]);
 
       // Bucket keys: daily for short ranges (<=31 days), monthly otherwise
@@ -135,6 +140,7 @@ export default function ReportsPage() {
         catTotals[cat] = (catTotals[cat] || 0) + Number(it.amount || 0);
       }
       setCategoryRevenue(Object.entries(catTotals).map(([category, amount]) => ({ category, amount: Math.round(amount) })).sort((a, b) => b.amount - a.amount));
+      setInvoiceItemsRaw(invoiceItemsRes.data || []);
 
       // Expenses by category
       const expTotals: Record<string, number> = {};
@@ -143,6 +149,7 @@ export default function ReportsPage() {
         expTotals[cat] = (expTotals[cat] || 0) + Number(ex.amount || 0);
       }
       setExpenseByCategory(Object.entries(expTotals).map(([category, amount]) => ({ category, amount: Math.round(amount) })).sort((a, b) => b.amount - a.amount));
+      setExpensesRaw(expensesRes.data || []);
 
       // Revenue by department (only items tagged with a department)
       const deptRevTotals: Record<string, number> = {};
@@ -335,15 +342,33 @@ export default function ReportsPage() {
             <div className="px-6 pb-6 space-y-2">
               {categoryRevenue.map((c) => {
                 const max = categoryRevenue[0]?.amount || 1;
+                const isOpen = expandedRevenueCategory === c.category;
+                const items = invoiceItemsRaw.filter((it: any) => (it.category || 'Other') === c.category);
                 return (
                   <div key={c.category} className="space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-300">{c.category}</span>
-                      <span className="text-white font-semibold">{currency} {c.amount.toLocaleString()}</span>
-                    </div>
-                    <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                      <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${(c.amount / max) * 100}%` }} />
-                    </div>
+                    <button onClick={() => setExpandedRevenueCategory(isOpen ? null : c.category)} className="w-full text-left space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-300">{c.category}</span>
+                        <span className="text-white font-semibold">{currency} {c.amount.toLocaleString()}</span>
+                      </div>
+                      <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${(c.amount / max) * 100}%` }} />
+                      </div>
+                    </button>
+                    {isOpen && (
+                      <div className="bg-white/5 rounded-lg p-2 space-y-1 mt-1">
+                        {items.map((it: any) => (
+                          <Link
+                            key={it.id}
+                            href={`/dashboard/billing/${it.Invoice?.id}`}
+                            className="flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-white/5 text-xs"
+                          >
+                            <span className="text-gray-300 truncate">{it.Invoice?.Patient?.fullName || 'Patient'} — {it.description}</span>
+                            <span className="text-gray-400 flex-shrink-0 ml-2">{currency} {Number(it.amount).toLocaleString()}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -362,15 +387,29 @@ export default function ReportsPage() {
             <div className="px-6 pb-6 space-y-2">
               {expenseByCategory.map((c) => {
                 const max = expenseByCategory[0]?.amount || 1;
+                const isOpen = expandedExpenseCategory === c.category;
+                const items = expensesRaw.filter((ex: any) => (ex.category || 'Other') === c.category);
                 return (
                   <div key={c.category} className="space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-300">{c.category}</span>
-                      <span className="text-white font-semibold">{currency} {c.amount.toLocaleString()}</span>
-                    </div>
-                    <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                      <div className="h-full bg-rose-500 rounded-full" style={{ width: `${(c.amount / max) * 100}%` }} />
-                    </div>
+                    <button onClick={() => setExpandedExpenseCategory(isOpen ? null : c.category)} className="w-full text-left space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-300">{c.category}</span>
+                        <span className="text-white font-semibold">{currency} {c.amount.toLocaleString()}</span>
+                      </div>
+                      <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-full bg-rose-500 rounded-full" style={{ width: `${(c.amount / max) * 100}%` }} />
+                      </div>
+                    </button>
+                    {isOpen && (
+                      <div className="bg-white/5 rounded-lg p-2 space-y-1 mt-1">
+                        {items.map((ex: any) => (
+                          <div key={ex.id} className="flex items-center justify-between px-2 py-1.5 text-xs">
+                            <span className="text-gray-300 truncate">{ex.description || ex.category} {ex.Department?.name ? `· ${ex.Department.name}` : ''} — {new Date(ex.expenseDate).toLocaleDateString()}</span>
+                            <span className="text-gray-400 flex-shrink-0 ml-2">{currency} {Number(ex.amount).toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}
