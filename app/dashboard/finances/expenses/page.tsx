@@ -21,13 +21,18 @@ export default function ExpensesPage() {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({ category: 'Rent', description: '', amount: '', expenseDate: new Date().toISOString().slice(0, 10) });
+  const [form, setForm] = useState({ category: 'Rent', description: '', amount: '', expenseDate: new Date().toISOString().slice(0, 10), departmentId: '' });
+  const [departments, setDepartments] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ category: '', description: '', amount: '', expenseDate: '' });
+  const [editForm, setEditForm] = useState({ category: '', description: '', amount: '', expenseDate: '', departmentId: '' });
 
   const load = async () => {
-    const { data } = await supabase.from('Expense').select('*').order('expenseDate', { ascending: false }).limit(200);
-    setExpenses(data || []);
+    const [expRes, deptRes] = await Promise.all([
+      supabase.from('Expense').select('*, Department(name)').order('expenseDate', { ascending: false }).limit(200),
+      supabase.from('Department').select('id, name').order('name'),
+    ]);
+    setExpenses(expRes.data || []);
+    setDepartments(deptRes.data || []);
     setLoading(false);
   };
 
@@ -44,11 +49,12 @@ export default function ExpensesPage() {
       description: form.description || null,
       amount: Number(form.amount),
       expenseDate: form.expenseDate,
+      departmentId: form.departmentId || null,
       recordedById: user?.id,
     });
     setSaving(false);
     if (insertError) { setError(insertError.message); return; }
-    setForm({ category: 'Rent', description: '', amount: '', expenseDate: new Date().toISOString().slice(0, 10) });
+    setForm({ category: 'Rent', description: '', amount: '', expenseDate: new Date().toISOString().slice(0, 10), departmentId: '' });
     setShowForm(false);
     await load();
   };
@@ -60,6 +66,7 @@ export default function ExpensesPage() {
       description: expense.description || '',
       amount: String(expense.amount),
       expenseDate: expense.expenseDate,
+      departmentId: expense.departmentId || '',
     });
   };
 
@@ -71,6 +78,7 @@ export default function ExpensesPage() {
       description: editForm.description || null,
       amount: Number(editForm.amount),
       expenseDate: editForm.expenseDate,
+      departmentId: editForm.departmentId || null,
     }).eq('id', id);
     if (updateError) { setError(updateError.message); return; }
     setEditingId(null);
@@ -119,9 +127,13 @@ export default function ExpensesPage() {
             <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="glass-input px-4 py-3 rounded-lg text-white">
               {CATEGORIES.map((c) => <option key={c} value={c} className="text-black">{c}</option>)}
             </select>
+            <select value={form.departmentId} onChange={(e) => setForm({ ...form, departmentId: e.target.value })} className="glass-input px-4 py-3 rounded-lg text-white">
+              <option value="" className="text-black">No department</option>
+              {departments.map((d) => <option key={d.id} value={d.id} className="text-black">{d.name}</option>)}
+            </select>
             <Input type="number" min={0} placeholder={`Amount (${currency})`} value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} className="glass-input px-4 py-3 rounded-lg text-white" />
             <Input type="date" value={form.expenseDate} onChange={(e) => setForm({ ...form, expenseDate: e.target.value })} className="glass-input px-4 py-3 rounded-lg text-white" />
-            <Input placeholder="Description (optional)" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="glass-input px-4 py-3 rounded-lg text-white" />
+            <Input placeholder="Description (optional)" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="glass-input px-4 py-3 rounded-lg text-white sm:col-span-2" />
           </div>
           <div className="flex gap-2">
             <Button type="submit" disabled={saving} className="gradient-primary">{saving ? 'Saving...' : 'Save Expense'}</Button>
@@ -145,9 +157,13 @@ export default function ExpensesPage() {
                       <select value={editForm.category} onChange={(ev) => setEditForm({ ...editForm, category: ev.target.value })} className="glass-input px-3 py-2 rounded-lg text-white text-sm">
                         {CATEGORIES.map((c) => <option key={c} value={c} className="text-black">{c}</option>)}
                       </select>
+                      <select value={editForm.departmentId} onChange={(ev) => setEditForm({ ...editForm, departmentId: ev.target.value })} className="glass-input px-3 py-2 rounded-lg text-white text-sm">
+                        <option value="" className="text-black">No department</option>
+                        {departments.map((d) => <option key={d.id} value={d.id} className="text-black">{d.name}</option>)}
+                      </select>
                       <Input type="number" min={0} value={editForm.amount} onChange={(ev) => setEditForm({ ...editForm, amount: ev.target.value })} className="glass-input px-3 py-2 rounded-lg text-white text-sm" />
                       <Input type="date" value={editForm.expenseDate} onChange={(ev) => setEditForm({ ...editForm, expenseDate: ev.target.value })} className="glass-input px-3 py-2 rounded-lg text-white text-sm" />
-                      <Input placeholder="Description" value={editForm.description} onChange={(ev) => setEditForm({ ...editForm, description: ev.target.value })} className="glass-input px-3 py-2 rounded-lg text-white text-sm" />
+                      <Input placeholder="Description" value={editForm.description} onChange={(ev) => setEditForm({ ...editForm, description: ev.target.value })} className="glass-input px-3 py-2 rounded-lg text-white text-sm sm:col-span-2" />
                     </div>
                     <div className="flex gap-2">
                       <button onClick={() => saveEdit(e.id)} className="p-2 rounded-lg bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300"><Check className="w-4 h-4" /></button>
@@ -157,7 +173,7 @@ export default function ExpensesPage() {
                 ) : (
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-white font-medium">{e.category}{e.description ? ` — ${e.description}` : ''}</p>
+                      <p className="text-white font-medium">{e.category}{e.Department?.name ? ` · ${e.Department.name}` : ''}{e.description ? ` — ${e.description}` : ''}</p>
                       <p className="text-xs text-gray-400">{new Date(e.expenseDate).toLocaleDateString()}</p>
                     </div>
                     <div className="flex items-center gap-3">

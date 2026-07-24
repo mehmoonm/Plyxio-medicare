@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth-context';
 import type { DbPatient, DbUser } from '@/lib/supabase/types';
-import { generateDaySlots, isSlotInPast } from '@/lib/appointment-slots';
+import { generateDaySlotsForSchedule, isSlotInPast, type ScheduleRange } from '@/lib/appointment-slots';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, Save, Plus } from 'lucide-react';
@@ -20,6 +20,7 @@ export default function NewAppointmentPage() {
   const [patients, setPatients] = useState<DbPatient[]>([]);
   const [doctors, setDoctors] = useState<DbUser[]>([]);
   const [bookedTimes, setBookedTimes] = useState<Set<string>>(new Set());
+  const [doctorSchedule, setDoctorSchedule] = useState<ScheduleRange[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -38,6 +39,14 @@ export default function NewAppointmentPage() {
       setDoctors((d.data as any) || []);
     })();
   }, []);
+
+  useEffect(() => {
+    if (!form.doctorId) { setDoctorSchedule([]); return; }
+    (async () => {
+      const { data } = await supabase.from('DoctorSchedule').select('dayOfWeek, startTime, endTime').eq('doctorId', form.doctorId);
+      setDoctorSchedule(data || []);
+    })();
+  }, [form.doctorId]);
 
   useEffect(() => {
     if (!form.doctorId || !form.date) { setBookedTimes(new Set()); return; }
@@ -59,7 +68,7 @@ export default function NewAppointmentPage() {
     })();
   }, [form.doctorId, form.date]);
 
-  const slots = generateDaySlots();
+  const slots = generateDaySlotsForSchedule(form.date, doctorSchedule);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -141,6 +150,8 @@ export default function NewAppointmentPage() {
             <label className="text-sm font-semibold text-gray-700 block mb-2">Available Times *</label>
             {loadingSlots ? (
               <p className="text-sm text-gray-500">Checking availability…</p>
+            ) : slots.length === 0 ? (
+              <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">This doctor isn't scheduled to work on this day. Try another date.</p>
             ) : (
               <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
                 {slots.map((slot) => {

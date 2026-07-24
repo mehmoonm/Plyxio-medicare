@@ -41,6 +41,8 @@ export default function ReportsPage() {
   const [doctorStats, setDoctorStats] = useState<any[]>([]);
   const [categoryRevenue, setCategoryRevenue] = useState<{ category: string; amount: number }[]>([]);
   const [expenseByCategory, setExpenseByCategory] = useState<{ category: string; amount: number }[]>([]);
+  const [departmentRevenue, setDepartmentRevenue] = useState<{ department: string; amount: number }[]>([]);
+  const [departmentExpense, setDepartmentExpense] = useState<{ department: string; amount: number }[]>([]);
   const [topDiagnoses, setTopDiagnoses] = useState<{ diagnosis: string; count: number }[]>([]);
   const [totals, setTotals] = useState({ revenue: 0, patients: 0, appointments: 0, completionRate: 0 });
 
@@ -58,9 +60,9 @@ export default function ReportsPage() {
         supabase.from('User').select('id, fullName').eq('role', 'DOCTOR').eq('isActive', true),
         supabase.from('Patient').select('id', { count: 'exact', head: true }),
         supabase.from('Invoice').select('amountPaid, status'),
-        supabase.from('InvoiceItem').select('category, amount, Invoice!inner(createdAt)').gte('Invoice.createdAt', cutoffIso),
+        supabase.from('InvoiceItem').select('category, amount, departmentId, Department(name), Invoice!inner(createdAt)').gte('Invoice.createdAt', cutoffIso),
         supabase.from('Encounter').select('diagnosis').gte('createdAt', cutoffIso).not('diagnosis', 'is', null),
-        supabase.from('Expense').select('category, amount, expenseDate').gte('expenseDate', cutoffIso.slice(0, 10)),
+        supabase.from('Expense').select('category, amount, expenseDate, departmentId, Department(name)').gte('expenseDate', cutoffIso.slice(0, 10)),
       ]);
 
       const monthKeys = lastNMonthKeys(MONTHS_BACK);
@@ -117,6 +119,24 @@ export default function ReportsPage() {
         expTotals[cat] = (expTotals[cat] || 0) + Number(ex.amount || 0);
       }
       setExpenseByCategory(Object.entries(expTotals).map(([category, amount]) => ({ category, amount: Math.round(amount) })).sort((a, b) => b.amount - a.amount));
+
+      // Revenue by department (only items tagged with a department)
+      const deptRevTotals: Record<string, number> = {};
+      for (const it of invoiceItemsRes.data || []) {
+        const deptName = (it as any).Department?.name;
+        if (!deptName) continue;
+        deptRevTotals[deptName] = (deptRevTotals[deptName] || 0) + Number(it.amount || 0);
+      }
+      setDepartmentRevenue(Object.entries(deptRevTotals).map(([department, amount]) => ({ department, amount: Math.round(amount) })).sort((a, b) => b.amount - a.amount));
+
+      // Expenses by department
+      const deptExpTotals: Record<string, number> = {};
+      for (const ex of expensesRes.data || []) {
+        const deptName = (ex as any).Department?.name;
+        if (!deptName) continue;
+        deptExpTotals[deptName] = (deptExpTotals[deptName] || 0) + Number(ex.amount || 0);
+      }
+      setDepartmentExpense(Object.entries(deptExpTotals).map(([department, amount]) => ({ department, amount: Math.round(amount) })).sort((a, b) => b.amount - a.amount));
 
       // Most common diagnoses -- loosely grouped by trimmed/lowercased text
       // since diagnosis is free text (e.g. "Flu" and "flu" count together)
@@ -352,6 +372,64 @@ export default function ReportsPage() {
           )}
         </div>
       </div>
+
+      {(departmentRevenue.length > 0 || departmentExpense.length > 0) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="glass-card rounded-2xl overflow-hidden">
+            <div className="p-6 pb-0">
+              <h2 className="text-lg font-bold text-white mb-1">Revenue by Department</h2>
+              <p className="text-xs text-gray-400 mb-4">Which departments are generating revenue ({MONTHS_BACK}mo)</p>
+            </div>
+            {departmentRevenue.length === 0 ? (
+              <p className="text-gray-400 p-6 pt-0">No department-tagged invoice items yet. Tag line items with a department when billing.</p>
+            ) : (
+              <div className="px-6 pb-6 space-y-2">
+                {departmentRevenue.map((d) => {
+                  const max = departmentRevenue[0]?.amount || 1;
+                  return (
+                    <div key={d.department} className="space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-300">{d.department}</span>
+                        <span className="text-white font-semibold">{currency} {d.amount.toLocaleString()}</span>
+                      </div>
+                      <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(d.amount / max) * 100}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="glass-card rounded-2xl overflow-hidden">
+            <div className="p-6 pb-0">
+              <h2 className="text-lg font-bold text-white mb-1">Expenses by Department</h2>
+              <p className="text-xs text-gray-400 mb-4">Which departments are costing the most ({MONTHS_BACK}mo)</p>
+            </div>
+            {departmentExpense.length === 0 ? (
+              <p className="text-gray-400 p-6 pt-0">No department-tagged expenses yet. Tag expenses with a department when adding them.</p>
+            ) : (
+              <div className="px-6 pb-6 space-y-2">
+                {departmentExpense.map((d) => {
+                  const max = departmentExpense[0]?.amount || 1;
+                  return (
+                    <div key={d.department} className="space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-300">{d.department}</span>
+                        <span className="text-white font-semibold">{currency} {d.amount.toLocaleString()}</span>
+                      </div>
+                      <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-full bg-orange-500 rounded-full" style={{ width: `${(d.amount / max) * 100}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

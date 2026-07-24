@@ -4,17 +4,20 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { supabase } from './supabase/client';
 import { useAuth } from './auth-context';
 
-export type ShareableRole = 'NURSE' | 'PHARMACIST' | 'LAB_TECHNICIAN' | 'RADIOLOGIST' | 'BILLING_CLERK';
-export type PageKey = 'patients' | 'admissions' | 'lab' | 'radiology' | 'inventory' | 'pharmacy' | 'billing' | 'messages';
+export type ShareableRole = 'DOCTOR' | 'NURSE' | 'RECEPTIONIST' | 'PHARMACIST' | 'LAB_TECHNICIAN' | 'RADIOLOGIST' | 'BILLING_CLERK' | 'ACCOUNTANT';
+export type PageKey = 'patients' | 'appointments' | 'admissions' | 'lab' | 'radiology' | 'inventory' | 'pharmacy' | 'billing' | 'messages' | 'doctors' | 'finances';
 
-// Sensible defaults for the roles that used to all share one generic menu.
-// A hospital admin can override this per-hospital via Settings.
+// Sensible defaults matching each role's previous fixed menu. A hospital
+// admin can override any of these per-hospital via Settings.
 export const DEFAULT_ROLE_PAGES: Record<ShareableRole, PageKey[]> = {
+  DOCTOR: ['appointments', 'admissions', 'lab', 'radiology', 'patients', 'messages'],
+  RECEPTIONIST: ['appointments', 'billing'],
   NURSE: ['patients', 'admissions', 'lab', 'radiology'],
   PHARMACIST: ['inventory', 'pharmacy'],
   LAB_TECHNICIAN: ['lab'],
   RADIOLOGIST: ['radiology'],
   BILLING_CLERK: ['billing'],
+  ACCOUNTANT: ['finances', 'billing'],
 };
 
 export interface BrandSettings {

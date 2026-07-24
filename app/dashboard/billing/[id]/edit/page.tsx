@@ -19,6 +19,7 @@ interface LineItem {
   id?: string;
   description: string;
   category: string;
+  departmentId: string;
   quantity: number;
   unitPrice: number;
 }
@@ -30,6 +31,7 @@ export default function EditInvoicePage() {
   const { settings } = useSettings();
   const [invoice, setInvoice] = useState<any>(null);
   const [items, setItems] = useState<LineItem[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
   const [deletedItemIds, setDeletedItemIds] = useState<string[]>([]);
   const [discount, setDiscount] = useState(0);
   const [tax, setTax] = useState(0);
@@ -39,9 +41,14 @@ export default function EditInvoicePage() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from('Invoice').select('*, Patient(fullName, mrn), InvoiceItem(*)').eq('id', params.id).single();
+      const [invRes, deptRes] = await Promise.all([
+        supabase.from('Invoice').select('*, Patient(fullName, mrn), InvoiceItem(*)').eq('id', params.id).single(),
+        supabase.from('Department').select('id, name').order('name'),
+      ]);
+      const data = invRes.data;
       setInvoice(data);
-      setItems((data?.InvoiceItem || []).map((it: any) => ({ id: it.id, description: it.description, category: it.category || 'Other', quantity: it.quantity, unitPrice: Number(it.unitPrice) })));
+      setItems((data?.InvoiceItem || []).map((it: any) => ({ id: it.id, description: it.description, category: it.category || 'Other', departmentId: it.departmentId || '', quantity: it.quantity, unitPrice: Number(it.unitPrice) })));
+      setDepartments(deptRes.data || []);
       setDiscount(Number(data?.discount || 0));
       setTax(Number(data?.tax || 0));
       setLoading(false);
@@ -54,7 +61,7 @@ export default function EditInvoicePage() {
     setItems(next);
   };
 
-  const addItem = () => setItems([...items, { description: '', category: 'Other', quantity: 1, unitPrice: 0 }]);
+  const addItem = () => setItems([...items, { description: '', category: 'Other', departmentId: '', quantity: 1, unitPrice: 0 }]);
   const removeItem = (i: number) => {
     const item = items[i];
     if (item.id) setDeletedItemIds((prev) => [...prev, item.id!]);
@@ -84,6 +91,7 @@ export default function EditInvoicePage() {
         await supabase.from('InvoiceItem').update({
           description: item.description,
           category: item.category,
+          departmentId: item.departmentId || null,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           amount: item.quantity * item.unitPrice,
@@ -93,6 +101,7 @@ export default function EditInvoicePage() {
           invoiceId: params.id,
           description: item.description,
           category: item.category,
+          departmentId: item.departmentId || null,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           amount: item.quantity * item.unitPrice,
@@ -148,13 +157,17 @@ export default function EditInvoicePage() {
             </div>
             <div className="overflow-x-auto space-y-2 pb-1">
               {items.map((item, i) => (
-                <div key={item.id || `new-${i}`} className="min-w-[650px] grid grid-cols-12 gap-2 items-center">
-                  <Input className="col-span-4" placeholder="Description" value={item.description} onChange={(e) => updateItem(i, 'description', e.target.value)} />
-                  <select className="col-span-3 px-2 py-2 rounded-lg border border-gray-300 text-sm" value={item.category} onChange={(e) => updateItem(i, 'category', e.target.value)}>
+                <div key={item.id || `new-${i}`} className="min-w-[780px] grid grid-cols-[repeat(14,minmax(0,1fr))] gap-2 items-center">
+                  <Input className="col-span-3" placeholder="Description" value={item.description} onChange={(e) => updateItem(i, 'description', e.target.value)} />
+                  <select className="col-span-2 px-2 py-2 rounded-lg border border-gray-300 text-sm" value={item.category} onChange={(e) => updateItem(i, 'category', e.target.value)}>
                     {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
+                  <select className="col-span-3 px-2 py-2 rounded-lg border border-gray-300 text-sm" value={item.departmentId} onChange={(e) => updateItem(i, 'departmentId', e.target.value)}>
+                    <option value="">No department</option>
+                    {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
                   <Input className="col-span-2" type="number" min={1} placeholder="Qty" value={item.quantity} onChange={(e) => updateItem(i, 'quantity', Number(e.target.value))} />
-                  <Input className="col-span-2" type="number" min={0} placeholder="Unit Price" value={item.unitPrice} onChange={(e) => updateItem(i, 'unitPrice', Number(e.target.value))} />
+                  <Input className="col-span-3" type="number" min={0} placeholder="Unit Price" value={item.unitPrice} onChange={(e) => updateItem(i, 'unitPrice', Number(e.target.value))} />
                   <button type="button" onClick={() => removeItem(i)} className="col-span-1 text-red-500 hover:text-red-700">
                     <Trash2 className="w-4 h-4" />
                   </button>

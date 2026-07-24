@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { getImageDimensions, fitBox, detectImageFormat } from './logo-utils';
 
 interface PrescriptionPdfData {
   hospitalName: string;
@@ -19,14 +20,15 @@ interface PrescriptionPdfData {
   items: { drugName: string; strength?: string | null; dose?: string | null; frequency?: string | null; durationDays?: number | null; quantity?: number | null; instructions?: string | null }[];
 }
 
-function buildPrescriptionDoc(data: PrescriptionPdfData): jsPDF {
+async function buildPrescriptionDoc(data: PrescriptionPdfData): Promise<jsPDF> {
   const doc = new jsPDF();
   let titleX = 14;
 
   if (data.hospitalLogo) {
     try {
-      const fmt = data.hospitalLogo.includes('image/jpeg') || data.hospitalLogo.includes('image/jpg') ? 'JPEG' : 'PNG';
-      doc.addImage(data.hospitalLogo, fmt, 14, 12, 16, 16);
+      const { width, height } = await getImageDimensions(data.hospitalLogo);
+      const { w, h } = fitBox(width, height, 16);
+      doc.addImage(data.hospitalLogo, detectImageFormat(data.hospitalLogo), 14, 12, w, h);
       titleX = 34;
     } catch {
       // Malformed/unsupported image data — fall back to text-only header
@@ -130,13 +132,17 @@ function buildPrescriptionDoc(data: PrescriptionPdfData): jsPDF {
   return doc;
 }
 
-export function generatePrescriptionPdf(data: PrescriptionPdfData) {
-  buildPrescriptionDoc(data).save(`Prescription-${data.patientMrn}-${new Date(data.date).toISOString().slice(0, 10)}.pdf`);
+export async function generatePrescriptionPdf(data: PrescriptionPdfData) {
+  const doc = await buildPrescriptionDoc(data);
+  doc.save(`Prescription-${data.patientMrn}-${new Date(data.date).toISOString().slice(0, 10)}.pdf`);
 }
 
-export function printPrescriptionPdf(data: PrescriptionPdfData) {
-  const doc = buildPrescriptionDoc(data);
+export async function printPrescriptionPdf(data: PrescriptionPdfData) {
+  const win = window.open('', '_blank');
+  const doc = await buildPrescriptionDoc(data);
   const blobUrl = doc.output('bloburl');
-  const win = window.open(blobUrl as unknown as string, '_blank');
-  win?.addEventListener('load', () => win.print());
+  if (win) {
+    win.location.href = blobUrl as unknown as string;
+    win.addEventListener('load', () => win.print());
+  }
 }

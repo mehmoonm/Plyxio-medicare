@@ -13,15 +13,19 @@ import { DEFAULT_ROLE_PAGES, type ShareableRole, type PageKey } from '@/lib/sett
 import Link from 'next/link';
 
 const SHAREABLE_ROLES: { role: ShareableRole; label: string }[] = [
+  { role: 'DOCTOR', label: 'Doctor' },
   { role: 'NURSE', label: 'Nurse' },
+  { role: 'RECEPTIONIST', label: 'Receptionist' },
   { role: 'PHARMACIST', label: 'Pharmacist' },
   { role: 'LAB_TECHNICIAN', label: 'Lab Technician' },
   { role: 'RADIOLOGIST', label: 'Radiologist' },
   { role: 'BILLING_CLERK', label: 'Billing Clerk' },
+  { role: 'ACCOUNTANT', label: 'Accountant' },
 ];
 
 const PAGE_LABELS: Record<PageKey, string> = {
   patients: 'Patients',
+  appointments: 'Appointments',
   admissions: 'Admissions',
   lab: 'Lab Orders',
   radiology: 'Radiology',
@@ -29,6 +33,8 @@ const PAGE_LABELS: Record<PageKey, string> = {
   pharmacy: 'Pharmacy',
   billing: 'Billing',
   messages: 'Messages',
+  doctors: 'Doctors',
+  finances: 'Finances',
 };
 
 const MODULE_LIST: { key: ModuleKey; label: string; description: string; icon: any }[] = [
@@ -58,6 +64,7 @@ export default function SettingsPage() {
   const [currency, setCurrency] = useState(settings.currency);
   const [taxLabel, setTaxLabel] = useState(settings.taxLabel);
   const [rolePermissions, setRolePermissions] = useState(settings.rolePermissions);
+  const [activeTab, setActiveTab] = useState<'branding' | 'contact' | 'billing' | 'access'>('branding');
   const [saved, setSaved] = useState(false);
   const [moduleSaving, setModuleSaving] = useState<ModuleKey | null>(null);
   const [moduleError, setModuleError] = useState('');
@@ -212,9 +219,30 @@ export default function SettingsPage() {
         </div>
       )}
 
+      <div className="flex flex-wrap gap-2 border-b border-white/10 pb-3">
+        {([
+          ['branding', 'Branding'],
+          ['contact', 'Contact & Currency'],
+          ['billing', 'Modules & Billing'],
+          ['access', 'Role Access'],
+        ] as const).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setActiveTab(key)}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+              activeTab === key ? 'bg-indigo-600 text-white' : 'bg-white/5 text-slate-300 hover:bg-white/10'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Settings */}
         <div className="lg:col-span-2 space-y-6">
+          {activeTab === 'branding' && (
+          <>
           {/* Hospital Name */}
           <div className="glass-card rounded-2xl p-6 space-y-4">
             <h2 className="text-xl font-bold text-white">Hospital Information</h2>
@@ -356,7 +384,11 @@ export default function SettingsPage() {
               <p className="text-xs text-slate-400">Supported formats: PNG, JPG, SVG (Max 5MB)</p>
             </div>
           </div>
+          </>
+          )}
 
+          {activeTab === 'contact' && (
+          <>
           {/* Contact Info */}
           <div className="glass-card rounded-2xl p-6 space-y-4">
             <div>
@@ -407,7 +439,11 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
+          </>
+          )}
 
+          {activeTab === 'billing' && (
+          <>
           {/* Billing Controls */}
           {isAdmin(user?.role) && (
             <div className="glass-card rounded-2xl p-6 space-y-3">
@@ -463,7 +499,11 @@ export default function SettingsPage() {
               </p>
             </div>
           )}
+          </>
+          )}
 
+          {activeTab === 'access' && (
+          <>
           {/* Role Page Access */}
           {isAdmin(user?.role) && (
             <div className="glass-card rounded-2xl p-6 space-y-4">
@@ -500,6 +540,8 @@ export default function SettingsPage() {
                 </table>
               </div>
             </div>
+          )}
+          </>
           )}
         </div>
 

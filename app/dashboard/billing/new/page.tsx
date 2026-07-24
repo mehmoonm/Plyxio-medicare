@@ -18,6 +18,7 @@ const CATEGORIES = ['Consultation', 'Bed Charges', 'Pharmacy', 'Lab', 'Radiology
 interface LineItem {
   description: string;
   category: string;
+  departmentId: string;
   quantity: number;
   unitPrice: number;
 }
@@ -39,7 +40,8 @@ export default function NewInvoicePage() {
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [discount, setDiscount] = useState(0);
   const [tax, setTax] = useState(0);
-  const [items, setItems] = useState<LineItem[]>([{ description: '', category: 'Consultation', quantity: 1, unitPrice: 0 }]);
+  const [items, setItems] = useState<LineItem[]>([{ description: '', category: 'Consultation', departmentId: '', quantity: 1, unitPrice: 0 }]);
+  const [departments, setDepartments] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -49,8 +51,12 @@ export default function NewInvoicePage() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from('Patient').select('id, fullName, mrn').order('fullName');
-      setPatients((data as any) || []);
+      const [p, d] = await Promise.all([
+        supabase.from('Patient').select('id, fullName, mrn').order('fullName'),
+        supabase.from('Department').select('id, name').order('name'),
+      ]);
+      setPatients((p.data as any) || []);
+      setDepartments(d.data || []);
     })();
   }, []);
 
@@ -128,7 +134,7 @@ export default function NewInvoicePage() {
 
   const addSelectedSuggestions = () => {
     const toAdd = suggestions.filter((s) => selectedSuggestions.has(s.key));
-    const newItems = toAdd.map((s) => ({ description: s.description, category: s.category, quantity: 1, unitPrice: s.amount }));
+    const newItems = toAdd.map((s) => ({ description: s.description, category: s.category, departmentId: '', quantity: 1, unitPrice: s.amount }));
     setItems((prev) => [...prev.filter((it) => it.description || it.unitPrice), ...newItems]);
     setBilledSourceRefs((prev) => [...prev, ...toAdd.map((s) => ({ type: s.sourceType, id: s.sourceId }))]);
     setSuggestions((prev) => prev.filter((s) => !selectedSuggestions.has(s.key)));
@@ -141,7 +147,7 @@ export default function NewInvoicePage() {
     setItems(next);
   };
 
-  const addItem = () => setItems([...items, { description: '', category: 'Consultation', quantity: 1, unitPrice: 0 }]);
+  const addItem = () => setItems([...items, { description: '', category: 'Consultation', departmentId: '', quantity: 1, unitPrice: 0 }]);
   const removeItem = (i: number) => setItems(items.filter((_, idx) => idx !== i));
 
   const subtotal = items.reduce((sum, it) => sum + it.quantity * it.unitPrice, 0);
@@ -186,6 +192,7 @@ export default function NewInvoicePage() {
         invoiceId: invoice.id,
         description: it.description,
         category: it.category,
+        departmentId: it.departmentId || null,
         quantity: it.quantity,
         unitPrice: it.unitPrice,
         amount: it.quantity * it.unitPrice,
@@ -268,13 +275,17 @@ export default function NewInvoicePage() {
           </div>
           <div className="overflow-x-auto space-y-2 pb-1">
             {items.map((item, i) => (
-              <div key={i} className="min-w-[650px] grid grid-cols-12 gap-2 items-center">
-                <Input className="col-span-4" placeholder="Description" value={item.description} onChange={(e) => updateItem(i, 'description', e.target.value)} />
-                <select className="col-span-3 px-2 py-2 rounded-lg border border-gray-300 text-sm" value={item.category} onChange={(e) => updateItem(i, 'category', e.target.value)}>
+              <div key={i} className="min-w-[780px] grid grid-cols-[repeat(14,minmax(0,1fr))] gap-2 items-center">
+                <Input className="col-span-3" placeholder="Description" value={item.description} onChange={(e) => updateItem(i, 'description', e.target.value)} />
+                <select className="col-span-2 px-2 py-2 rounded-lg border border-gray-300 text-sm" value={item.category} onChange={(e) => updateItem(i, 'category', e.target.value)}>
                   {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
+                <select className="col-span-3 px-2 py-2 rounded-lg border border-gray-300 text-sm" value={item.departmentId} onChange={(e) => updateItem(i, 'departmentId', e.target.value)}>
+                  <option value="">No department</option>
+                  {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                </select>
                 <Input className="col-span-2" type="number" min={1} placeholder="Qty" value={item.quantity} onChange={(e) => updateItem(i, 'quantity', Number(e.target.value))} />
-                <Input className="col-span-2" type="number" min={0} placeholder="Unit Price" value={item.unitPrice} onChange={(e) => updateItem(i, 'unitPrice', Number(e.target.value))} />
+                <Input className="col-span-3" type="number" min={0} placeholder="Unit Price" value={item.unitPrice} onChange={(e) => updateItem(i, 'unitPrice', Number(e.target.value))} />
                 <button type="button" onClick={() => removeItem(i)} className="col-span-1 text-red-500 hover:text-red-700">
                   <Trash2 className="w-4 h-4" />
                 </button>

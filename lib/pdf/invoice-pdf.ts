@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { getImageDimensions, fitBox, detectImageFormat } from './logo-utils';
 
 interface InvoicePdfData {
   hospitalName: string;
@@ -23,7 +24,7 @@ interface InvoicePdfData {
   amountPaid: number;
 }
 
-function buildInvoiceDoc(data: InvoicePdfData): jsPDF {
+async function buildInvoiceDoc(data: InvoicePdfData): Promise<jsPDF> {
   const doc = new jsPDF();
   const balance = data.total - data.amountPaid;
   const currency = data.currencySymbol || 'Rs';
@@ -32,8 +33,9 @@ function buildInvoiceDoc(data: InvoicePdfData): jsPDF {
 
   if (data.hospitalLogo) {
     try {
-      const fmt = data.hospitalLogo.includes('image/jpeg') || data.hospitalLogo.includes('image/jpg') ? 'JPEG' : 'PNG';
-      doc.addImage(data.hospitalLogo, fmt, 14, 12, 16, 16);
+      const { width, height } = await getImageDimensions(data.hospitalLogo);
+      const { w, h } = fitBox(width, height, 16);
+      doc.addImage(data.hospitalLogo, detectImageFormat(data.hospitalLogo), 14, 12, w, h);
       titleX = 34;
     } catch {
       // Malformed/unsupported image data — fall back to text-only header
@@ -117,13 +119,19 @@ function buildInvoiceDoc(data: InvoicePdfData): jsPDF {
   return doc;
 }
 
-export function generateInvoicePdf(data: InvoicePdfData) {
-  buildInvoiceDoc(data).save(`${data.invoiceNo}.pdf`);
+export async function generateInvoicePdf(data: InvoicePdfData) {
+  const doc = await buildInvoiceDoc(data);
+  doc.save(`${data.invoiceNo}.pdf`);
 }
 
-export function printInvoicePdf(data: InvoicePdfData) {
-  const doc = buildInvoiceDoc(data);
+export async function printInvoicePdf(data: InvoicePdfData) {
+  // Open the window synchronously (before any await) so popup blockers
+  // don't treat this as an unsolicited popup — then fill it in once ready.
+  const win = window.open('', '_blank');
+  const doc = await buildInvoiceDoc(data);
   const blobUrl = doc.output('bloburl');
-  const win = window.open(blobUrl as unknown as string, '_blank');
-  win?.addEventListener('load', () => win.print());
+  if (win) {
+    win.location.href = blobUrl as unknown as string;
+    win.addEventListener('load', () => win.print());
+  }
 }

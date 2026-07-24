@@ -22,18 +22,19 @@ import {
   BarChart3,
   Building2,
   Wallet,
+  Clock,
 } from 'lucide-react';
 import { useSettings, DEFAULT_ROLE_PAGES, type ShareableRole, type PageKey } from '@/lib/settings-context';
 import { useModules, type ModuleKey } from '@/lib/hospital-modules-context';
 
 type MenuItem = { href: string; label: string; icon: any; moduleKey?: ModuleKey };
 
-// Every page a shared-role staff member (nurse, pharmacist, lab tech,
-// radiologist, billing clerk) could potentially see. Which ones they
-// actually see is decided by DEFAULT_ROLE_PAGES, overridable per-hospital
-// by the admin via Settings.
+// Every page a customizable role could potentially see. Which ones each
+// role actually sees is decided by DEFAULT_ROLE_PAGES, overridable
+// per-hospital by the admin via Settings > Role Page Access.
 const PAGE_DEFINITIONS: Record<PageKey, MenuItem> = {
   patients: { href: '/dashboard/patients', label: 'Patients', icon: Users },
+  appointments: { href: '/dashboard/appointments', label: 'Appointments', icon: Calendar },
   admissions: { href: '/dashboard/admissions', label: 'Admissions', icon: BedDouble, moduleKey: 'admissions' },
   lab: { href: '/dashboard/lab', label: 'Lab Orders', icon: FlaskConical, moduleKey: 'lab' },
   radiology: { href: '/dashboard/radiology', label: 'Radiology', icon: Scan, moduleKey: 'radiology' },
@@ -41,6 +42,8 @@ const PAGE_DEFINITIONS: Record<PageKey, MenuItem> = {
   pharmacy: { href: '/dashboard/pharmacy', label: 'Pharmacy', icon: Pill, moduleKey: 'inventory' },
   billing: { href: '/dashboard/billing', label: 'Billing', icon: FileText, moduleKey: 'billing' },
   messages: { href: '/dashboard/messages', label: 'Messages', icon: MessageCircle, moduleKey: 'messaging' },
+  doctors: { href: '/dashboard/doctors', label: 'Doctors', icon: Stethoscope },
+  finances: { href: '/dashboard/finances', label: 'Finances', icon: Wallet },
 };
 
 const adminMenuItems: MenuItem[] = [
@@ -62,22 +65,6 @@ const adminMenuItems: MenuItem[] = [
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ];
 
-const doctorMenuItems: MenuItem[] = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/dashboard/appointments', label: 'Appointments', icon: Calendar },
-  { href: '/dashboard/admissions', label: 'Admissions', icon: BedDouble, moduleKey: 'admissions' },
-  { href: '/dashboard/lab', label: 'Lab Orders', icon: FlaskConical, moduleKey: 'lab' },
-  { href: '/dashboard/radiology', label: 'Radiology', icon: Scan, moduleKey: 'radiology' },
-  { href: '/dashboard/patients', label: 'Patients', icon: Users },
-  { href: '/dashboard/messages', label: 'Messages', icon: MessageCircle, moduleKey: 'messaging' },
-];
-
-const patientMenuItems: MenuItem[] = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/dashboard/appointments', label: 'Appointments', icon: Calendar },
-  { href: '/dashboard/billing', label: 'Billing', icon: FileText, moduleKey: 'billing' },
-];
-
 export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => void }) {
   const pathname = usePathname();
   const { user } = useAuth();
@@ -85,21 +72,18 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
   const { isEnabled } = useModules();
 
   let menuItems: MenuItem[] = [];
-  if (user?.role === 'HOSPITAL_ADMIN' || user?.role === 'SUPER_ADMIN') menuItems = adminMenuItems;
-  else if (user?.role === 'DOCTOR') menuItems = doctorMenuItems;
-  else if (user?.role === 'RECEPTIONIST') menuItems = patientMenuItems;
-  else if (user?.role === 'ACCOUNTANT') menuItems = [
-    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/dashboard/finances', label: 'Finances', icon: Wallet },
-    { href: '/dashboard/billing', label: 'Billing', icon: FileText, moduleKey: 'billing' },
-  ];
-  else if (user?.role && user.role in DEFAULT_ROLE_PAGES) {
-    const shareableRole = user.role as ShareableRole;
-    const pages = settings.rolePermissions[shareableRole] ?? DEFAULT_ROLE_PAGES[shareableRole];
+  if (user?.role === 'HOSPITAL_ADMIN' || user?.role === 'SUPER_ADMIN') {
+    menuItems = adminMenuItems;
+  } else if (user?.role && user.role in DEFAULT_ROLE_PAGES) {
+    const role = user.role as ShareableRole;
+    const pages = settings.rolePermissions[role] ?? DEFAULT_ROLE_PAGES[role];
     menuItems = [
       { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
       ...pages.map((p) => PAGE_DEFINITIONS[p]).filter(Boolean),
     ];
+    if (role === 'DOCTOR') {
+      menuItems.push({ href: '/dashboard/schedule', label: 'My Schedule', icon: Clock });
+    }
   }
 
   menuItems = menuItems.filter((item) => !item.moduleKey || isEnabled(item.moduleKey));
@@ -125,9 +109,11 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
         <div className="p-6 sidebar-border">
           <div className="flex items-center gap-3">
             {settings.logo ? (
-              <img src={settings.logo} alt="Logo" className="w-10 h-10 rounded-lg object-contain" />
+              <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
+                <img src={settings.logo} alt="Logo" className="w-full h-full object-contain" />
+              </div>
             ) : (
-              <div className="w-10 h-10 rounded-lg gradient-primary-br flex items-center justify-center">
+              <div className="w-10 h-10 rounded-lg gradient-primary-br flex items-center justify-center flex-shrink-0">
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
                 </svg>
