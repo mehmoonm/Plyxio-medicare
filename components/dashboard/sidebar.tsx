@@ -25,6 +25,7 @@ import {
   Clock,
   Share2,
   FileCheck,
+  MessageSquare,
 } from 'lucide-react';
 import { useSettings, DEFAULT_ROLE_PAGES, type ShareableRole, type PageKey } from '@/lib/settings-context';
 import { useModules, type ModuleKey } from '@/lib/hospital-modules-context';
@@ -62,6 +63,7 @@ const adminMenuItems: MenuItem[] = [
   { href: '/dashboard/referrals', label: 'Referrals', icon: Share2 },
   { href: '/dashboard/medical-certificates', label: 'Medical Certificates', icon: FileCheck },
   { href: '/dashboard/queue', label: 'Walk-in Queue', icon: Users },
+  { href: '/dashboard/feedback', label: 'Feedback', icon: MessageSquare },
   { href: '/dashboard/billing', label: 'Billing', icon: FileText, moduleKey: 'billing' },
   { href: '/dashboard/inventory', label: 'Inventory', icon: Package, moduleKey: 'inventory' },
   { href: '/dashboard/pharmacy', label: 'Pharmacy', icon: Pill, moduleKey: 'inventory' },
