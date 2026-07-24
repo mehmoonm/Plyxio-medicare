@@ -23,10 +23,25 @@ import {
   Building2,
   Wallet,
 } from 'lucide-react';
-import { useSettings } from '@/lib/settings-context';
+import { useSettings, DEFAULT_ROLE_PAGES, type ShareableRole, type PageKey } from '@/lib/settings-context';
 import { useModules, type ModuleKey } from '@/lib/hospital-modules-context';
 
 type MenuItem = { href: string; label: string; icon: any; moduleKey?: ModuleKey };
+
+// Every page a shared-role staff member (nurse, pharmacist, lab tech,
+// radiologist, billing clerk) could potentially see. Which ones they
+// actually see is decided by DEFAULT_ROLE_PAGES, overridable per-hospital
+// by the admin via Settings.
+const PAGE_DEFINITIONS: Record<PageKey, MenuItem> = {
+  patients: { href: '/dashboard/patients', label: 'Patients', icon: Users },
+  admissions: { href: '/dashboard/admissions', label: 'Admissions', icon: BedDouble, moduleKey: 'admissions' },
+  lab: { href: '/dashboard/lab', label: 'Lab Orders', icon: FlaskConical, moduleKey: 'lab' },
+  radiology: { href: '/dashboard/radiology', label: 'Radiology', icon: Scan, moduleKey: 'radiology' },
+  inventory: { href: '/dashboard/inventory', label: 'Inventory', icon: Package, moduleKey: 'inventory' },
+  pharmacy: { href: '/dashboard/pharmacy', label: 'Pharmacy', icon: Pill, moduleKey: 'inventory' },
+  billing: { href: '/dashboard/billing', label: 'Billing', icon: FileText, moduleKey: 'billing' },
+  messages: { href: '/dashboard/messages', label: 'Messages', icon: MessageCircle, moduleKey: 'messaging' },
+};
 
 const adminMenuItems: MenuItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -63,16 +78,6 @@ const patientMenuItems: MenuItem[] = [
   { href: '/dashboard/billing', label: 'Billing', icon: FileText, moduleKey: 'billing' },
 ];
 
-const staffMenuItems: MenuItem[] = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/dashboard/patients', label: 'Patients', icon: Users },
-  { href: '/dashboard/admissions', label: 'Admissions', icon: BedDouble, moduleKey: 'admissions' },
-  { href: '/dashboard/lab', label: 'Lab Orders', icon: FlaskConical, moduleKey: 'lab' },
-  { href: '/dashboard/radiology', label: 'Radiology', icon: Scan, moduleKey: 'radiology' },
-  { href: '/dashboard/inventory', label: 'Inventory', icon: Package, moduleKey: 'inventory' },
-  { href: '/dashboard/pharmacy', label: 'Pharmacy', icon: Pill, moduleKey: 'inventory' },
-];
-
 export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => void }) {
   const pathname = usePathname();
   const { user } = useAuth();
@@ -88,7 +93,14 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
     { href: '/dashboard/finances', label: 'Finances', icon: Wallet },
     { href: '/dashboard/billing', label: 'Billing', icon: FileText, moduleKey: 'billing' },
   ];
-  else menuItems = staffMenuItems;
+  else if (user?.role && user.role in DEFAULT_ROLE_PAGES) {
+    const shareableRole = user.role as ShareableRole;
+    const pages = settings.rolePermissions[shareableRole] ?? DEFAULT_ROLE_PAGES[shareableRole];
+    menuItems = [
+      { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      ...pages.map((p) => PAGE_DEFINITIONS[p]).filter(Boolean),
+    ];
+  }
 
   menuItems = menuItems.filter((item) => !item.moduleKey || isEnabled(item.moduleKey));
 

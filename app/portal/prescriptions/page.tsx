@@ -31,7 +31,7 @@ export default function PortalPrescriptionsPage() {
   useEffect(() => {
     if (!patient?.hospitalId) return;
     (async () => {
-      const { data } = await supabase.from('Hospital').select('name, phone, email, address, city').eq('id', patient.hospitalId).single();
+      const { data } = await supabase.from('Hospital').select('name, logoUrl, phone, email, address, city').eq('id', patient.hospitalId).single();
       setHospital(data);
     })();
   }, [patient?.hospitalId]);
@@ -49,6 +49,7 @@ export default function PortalPrescriptionsPage() {
 
     return {
       hospitalName: hospital?.name || 'PLYXIO Vitals',
+      hospitalLogo: hospital?.logoUrl,
       hospitalPhone: hospital?.phone,
       hospitalEmail: hospital?.email,
       hospitalAddress: hospital?.address,

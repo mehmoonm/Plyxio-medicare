@@ -3,10 +3,13 @@ import autoTable from 'jspdf-autotable';
 
 interface InvoicePdfData {
   hospitalName: string;
+  hospitalLogo?: string | null;
   hospitalPhone?: string;
   hospitalEmail?: string;
   hospitalAddress?: string;
   hospitalCity?: string;
+  currencySymbol?: string;
+  taxLabel?: string;
   invoiceNo: string;
   createdAt: string;
   status: string;
@@ -23,17 +26,30 @@ interface InvoicePdfData {
 function buildInvoiceDoc(data: InvoicePdfData): jsPDF {
   const doc = new jsPDF();
   const balance = data.total - data.amountPaid;
+  const currency = data.currencySymbol || 'Rs';
+  const taxLabel = data.taxLabel || 'Tax';
+  let titleX = 14;
+
+  if (data.hospitalLogo) {
+    try {
+      const fmt = data.hospitalLogo.includes('image/jpeg') || data.hospitalLogo.includes('image/jpg') ? 'JPEG' : 'PNG';
+      doc.addImage(data.hospitalLogo, fmt, 14, 12, 16, 16);
+      titleX = 34;
+    } catch {
+      // Malformed/unsupported image data — fall back to text-only header
+    }
+  }
 
   doc.setFontSize(18);
   doc.setTextColor(30, 41, 59);
-  doc.text(data.hospitalName, 14, 20);
+  doc.text(data.hospitalName, titleX, 20);
 
   doc.setFontSize(8);
   doc.setTextColor(100, 116, 139);
   const contactLine = [data.hospitalPhone, data.hospitalEmail].filter(Boolean).join('  •  ');
   const addressLine = [data.hospitalAddress, data.hospitalCity].filter(Boolean).join(', ');
-  if (contactLine) doc.text(contactLine, 14, 26);
-  if (addressLine) doc.text(addressLine, 14, 31);
+  if (contactLine) doc.text(contactLine, titleX, 26);
+  if (addressLine) doc.text(addressLine, titleX, 31);
 
   doc.setFontSize(11);
   doc.setTextColor(100, 116, 139);
@@ -64,8 +80,8 @@ function buildInvoiceDoc(data: InvoicePdfData): jsPDF {
       it.description,
       it.category || '—',
       String(it.quantity),
-      `Rs ${it.unitPrice.toLocaleString()}`,
-      `Rs ${it.amount.toLocaleString()}`,
+      `${currency} ${it.unitPrice.toLocaleString()}`,
+      `${currency} ${it.amount.toLocaleString()}`,
     ]),
     headStyles: { fillColor: [99, 102, 241] },
     styles: { fontSize: 9 },
@@ -74,12 +90,12 @@ function buildInvoiceDoc(data: InvoicePdfData): jsPDF {
   const finalY = (doc as any).lastAutoTable.finalY + 10;
   const summaryX = 140;
   const summaryLines: [string, string][] = [
-    ['Subtotal', `Rs ${data.subtotal.toLocaleString()}`],
-    ['Discount', `-Rs ${data.discount.toLocaleString()}`],
-    ['Tax', `+Rs ${data.tax.toLocaleString()}`],
-    ['Total', `Rs ${data.total.toLocaleString()}`],
-    ['Paid', `Rs ${data.amountPaid.toLocaleString()}`],
-    ['Balance', `Rs ${balance.toLocaleString()}`],
+    ['Subtotal', `${currency} ${data.subtotal.toLocaleString()}`],
+    ['Discount', `-${currency} ${data.discount.toLocaleString()}`],
+    [taxLabel, `+${currency} ${data.tax.toLocaleString()}`],
+    ['Total', `${currency} ${data.total.toLocaleString()}`],
+    ['Paid', `${currency} ${data.amountPaid.toLocaleString()}`],
+    ['Balance', `${currency} ${balance.toLocaleString()}`],
   ];
 
   let y = finalY;

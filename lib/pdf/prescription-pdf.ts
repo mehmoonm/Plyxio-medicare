@@ -3,6 +3,7 @@ import autoTable from 'jspdf-autotable';
 
 interface PrescriptionPdfData {
   hospitalName: string;
+  hospitalLogo?: string | null;
   hospitalPhone?: string;
   hospitalEmail?: string;
   hospitalAddress?: string;
@@ -20,17 +21,28 @@ interface PrescriptionPdfData {
 
 function buildPrescriptionDoc(data: PrescriptionPdfData): jsPDF {
   const doc = new jsPDF();
+  let titleX = 14;
+
+  if (data.hospitalLogo) {
+    try {
+      const fmt = data.hospitalLogo.includes('image/jpeg') || data.hospitalLogo.includes('image/jpg') ? 'JPEG' : 'PNG';
+      doc.addImage(data.hospitalLogo, fmt, 14, 12, 16, 16);
+      titleX = 34;
+    } catch {
+      // Malformed/unsupported image data — fall back to text-only header
+    }
+  }
 
   doc.setFontSize(18);
   doc.setTextColor(30, 41, 59);
-  doc.text(data.hospitalName, 14, 20);
+  doc.text(data.hospitalName, titleX, 20);
 
   doc.setFontSize(8);
   doc.setTextColor(100, 116, 139);
   const contactLine = [data.hospitalPhone, data.hospitalEmail].filter(Boolean).join('  •  ');
   const addressLine = [data.hospitalAddress, data.hospitalCity].filter(Boolean).join(', ');
-  if (contactLine) doc.text(contactLine, 14, 26);
-  if (addressLine) doc.text(addressLine, 14, 31);
+  if (contactLine) doc.text(contactLine, titleX, 26);
+  if (addressLine) doc.text(addressLine, titleX, 31);
 
   doc.setFontSize(11);
   doc.setTextColor(100, 116, 139);

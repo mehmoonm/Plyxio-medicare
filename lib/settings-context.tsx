@@ -4,6 +4,19 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { supabase } from './supabase/client';
 import { useAuth } from './auth-context';
 
+export type ShareableRole = 'NURSE' | 'PHARMACIST' | 'LAB_TECHNICIAN' | 'RADIOLOGIST' | 'BILLING_CLERK';
+export type PageKey = 'patients' | 'admissions' | 'lab' | 'radiology' | 'inventory' | 'pharmacy' | 'billing' | 'messages';
+
+// Sensible defaults for the roles that used to all share one generic menu.
+// A hospital admin can override this per-hospital via Settings.
+export const DEFAULT_ROLE_PAGES: Record<ShareableRole, PageKey[]> = {
+  NURSE: ['patients', 'admissions', 'lab', 'radiology'],
+  PHARMACIST: ['inventory', 'pharmacy'],
+  LAB_TECHNICIAN: ['lab'],
+  RADIOLOGIST: ['radiology'],
+  BILLING_CLERK: ['billing'],
+};
+
 export interface BrandSettings {
   primaryColor: string;
   accentColor: string;
@@ -16,6 +29,9 @@ export interface BrandSettings {
   city: string;
   country: string;
   allowBillingClerkInvoiceEdit: boolean;
+  currency: string;
+  taxLabel: string;
+  rolePermissions: Partial<Record<ShareableRole, PageKey[]>>;
 }
 
 const defaultSettings: BrandSettings = {
@@ -30,6 +46,9 @@ const defaultSettings: BrandSettings = {
   city: '',
   country: '',
   allowBillingClerkInvoiceEdit: false,
+  currency: 'PKR',
+  taxLabel: 'Tax',
+  rolePermissions: {},
 };
 
 interface SettingsContextType {
@@ -78,7 +97,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     if (!user?.hospitalId) { setMounted(true); return; }
     const { data } = await supabase
       .from('Hospital')
-      .select('name, logoUrl, primaryColor, accentColor, phone, email, address, city, country, allowBillingClerkInvoiceEdit')
+      .select('name, logoUrl, primaryColor, accentColor, phone, email, address, city, country, allowBillingClerkInvoiceEdit, currency, taxLabel, rolePermissions')
       .eq('id', user.hospitalId)
       .single();
 
@@ -94,6 +113,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         city: data.city || '',
         country: data.country || '',
         allowBillingClerkInvoiceEdit: !!data.allowBillingClerkInvoiceEdit,
+        currency: data.currency || defaultSettings.currency,
+        taxLabel: data.taxLabel || defaultSettings.taxLabel,
+        rolePermissions: data.rolePermissions || {},
       };
       setSettings((s) => ({ ...s, ...merged }));
       applyColors(merged.primaryColor!, merged.accentColor!);
@@ -123,6 +145,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     if (newSettings.city !== undefined) hospitalFields.city = newSettings.city;
     if (newSettings.country !== undefined) hospitalFields.country = newSettings.country;
     if (newSettings.allowBillingClerkInvoiceEdit !== undefined) hospitalFields.allowBillingClerkInvoiceEdit = newSettings.allowBillingClerkInvoiceEdit;
+    if (newSettings.currency !== undefined) hospitalFields.currency = newSettings.currency;
+    if (newSettings.taxLabel !== undefined) hospitalFields.taxLabel = newSettings.taxLabel;
+    if (newSettings.rolePermissions !== undefined) hospitalFields.rolePermissions = newSettings.rolePermissions;
 
     if (newSettings.primaryColor || newSettings.accentColor) {
       applyColors(updated.primaryColor, updated.accentColor);

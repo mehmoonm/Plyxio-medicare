@@ -49,6 +49,7 @@ export default function EncounterDetailPage() {
 
     return {
       hospitalName: settings.hospitalName,
+      hospitalLogo: settings.logo,
       hospitalPhone: settings.phone,
       hospitalEmail: settings.email,
       hospitalAddress: settings.address,

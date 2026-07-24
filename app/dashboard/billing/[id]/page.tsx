@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/auth-context';
 import { useSettings } from '@/lib/settings-context';
 import { canManageBilling, canEditInvoice } from '@/lib/permissions';
 import { generateInvoicePdf, printInvoicePdf } from '@/lib/pdf/invoice-pdf';
+import { currencySymbol } from '@/lib/currency';
 import { logAudit } from '@/lib/audit-log';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -74,10 +75,13 @@ export default function InvoiceDetailPage() {
 
   const buildPdfData = () => ({
     hospitalName: settings.hospitalName,
+    hospitalLogo: settings.logo,
     hospitalPhone: settings.phone,
     hospitalEmail: settings.email,
     hospitalAddress: settings.address,
     hospitalCity: settings.city,
+    currencySymbol: currencySymbol(settings.currency),
+    taxLabel: settings.taxLabel,
     invoiceNo: invoice.invoiceNo,
     createdAt: invoice.createdAt,
     status: invoice.status,

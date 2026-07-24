@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth-context';
 import { canManageFinances } from '@/lib/permissions';
+import { useSettings } from '@/lib/settings-context';
+import { currencySymbol } from '@/lib/currency';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Wallet, RefreshCw, CheckCircle2, DollarSign } from 'lucide-react';
@@ -18,6 +20,8 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function PayrollPage() {
   const { user } = useAuth();
+  const { settings } = useSettings();
+  const currency = currencySymbol(settings.currency);
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
@@ -141,7 +145,7 @@ export default function PayrollPage() {
         </Button>
         <div className="ml-auto text-right">
           <p className="text-xs text-gray-400">Total for {MONTHS[month - 1]} {year}</p>
-          <p className="text-xl font-bold text-white">Rs {totalPayout.toLocaleString()}</p>
+          <p className="text-xl font-bold text-white">{currency} {totalPayout.toLocaleString()}</p>
         </div>
       </div>
 
@@ -160,8 +164,8 @@ export default function PayrollPage() {
                   <div>
                     <p className="text-white font-medium">{r.User?.fullName} <span className="text-gray-400 text-xs">({r.User?.role?.replace('_', ' ')})</span></p>
                     <p className="text-xs text-gray-400">
-                      {r.compensationType === 'PER_PATIENT' ? `${r.patientCount} patients × Rs ${(Number(r.baseAmount) / (r.patientCount || 1)).toLocaleString()}` : 'Fixed salary'}
-                      {' '}• Base: Rs {Number(r.baseAmount).toLocaleString()}
+                      {r.compensationType === 'PER_PATIENT' ? `${r.patientCount} patients × ${currency} ${(Number(r.baseAmount) / (r.patientCount || 1)).toLocaleString()}` : 'Fixed salary'}
+                      {' '}• Base: {currency} {Number(r.baseAmount).toLocaleString()}
                     </p>
                   </div>
                   <Badge className={STATUS_COLORS[r.status]}>{r.status}</Badge>
@@ -169,7 +173,7 @@ export default function PayrollPage() {
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end">
                   <div>
-                    <label className="text-xs text-gray-400 block mb-1">Bonus (Rs)</label>
+                    <label className="text-xs text-gray-400 block mb-1">Bonus ({currency})</label>
                     <input
                       type="number"
                       disabled={r.status !== 'DRAFT'}
@@ -180,7 +184,7 @@ export default function PayrollPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-400 block mb-1">Deductions (Rs)</label>
+                    <label className="text-xs text-gray-400 block mb-1">Deductions ({currency})</label>
                     <input
                       type="number"
                       disabled={r.status !== 'DRAFT'}
@@ -192,7 +196,7 @@ export default function PayrollPage() {
                   </div>
                   <div>
                     <p className="text-xs text-gray-400">Total</p>
-                    <p className="text-lg font-bold text-white">Rs {Number(r.totalAmount).toLocaleString()}</p>
+                    <p className="text-lg font-bold text-white">{currency} {Number(r.totalAmount).toLocaleString()}</p>
                   </div>
                   <div className="flex gap-2 justify-end">
                     {r.status === 'DRAFT' && (

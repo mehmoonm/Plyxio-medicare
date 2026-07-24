@@ -1,5 +1,5 @@
 import { ModuleGuard } from '@/components/dashboard/module-guard';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  return <ModuleGuard moduleKey="inventory">{children}</ModuleGuard>;
+  return <ModuleGuard moduleKey="inventory" pageKey="inventory">{children}</ModuleGuard>;
 }

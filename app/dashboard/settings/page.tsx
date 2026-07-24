@@ -7,8 +7,29 @@ import { useModules, type ModuleKey } from '@/lib/hospital-modules-context';
 import { isAdmin } from '@/lib/permissions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Upload, RotateCcw, Moon, Sun, Monitor, BedDouble, FlaskConical, Scan, Package, FileText, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Upload, RotateCcw, Moon, Sun, Monitor, BedDouble, FlaskConical, Scan, Package, FileText, MessageCircle, Users, CreditCard } from 'lucide-react';
+import { CURRENCY_OPTIONS } from '@/lib/currency';
+import { DEFAULT_ROLE_PAGES, type ShareableRole, type PageKey } from '@/lib/settings-context';
 import Link from 'next/link';
+
+const SHAREABLE_ROLES: { role: ShareableRole; label: string }[] = [
+  { role: 'NURSE', label: 'Nurse' },
+  { role: 'PHARMACIST', label: 'Pharmacist' },
+  { role: 'LAB_TECHNICIAN', label: 'Lab Technician' },
+  { role: 'RADIOLOGIST', label: 'Radiologist' },
+  { role: 'BILLING_CLERK', label: 'Billing Clerk' },
+];
+
+const PAGE_LABELS: Record<PageKey, string> = {
+  patients: 'Patients',
+  admissions: 'Admissions',
+  lab: 'Lab Orders',
+  radiology: 'Radiology',
+  inventory: 'Inventory',
+  pharmacy: 'Pharmacy',
+  billing: 'Billing',
+  messages: 'Messages',
+};
 
 const MODULE_LIST: { key: ModuleKey; label: string; description: string; icon: any }[] = [
   { key: 'admissions', label: 'Admissions & Beds', description: 'Ward/bed management, patient admission and discharge', icon: BedDouble },
@@ -34,6 +55,9 @@ export default function SettingsPage() {
   const [city, setCity] = useState(settings.city);
   const [country, setCountry] = useState(settings.country);
   const [allowBillingClerkInvoiceEdit, setAllowBillingClerkInvoiceEdit] = useState(settings.allowBillingClerkInvoiceEdit);
+  const [currency, setCurrency] = useState(settings.currency);
+  const [taxLabel, setTaxLabel] = useState(settings.taxLabel);
+  const [rolePermissions, setRolePermissions] = useState(settings.rolePermissions);
   const [saved, setSaved] = useState(false);
   const [moduleSaving, setModuleSaving] = useState<ModuleKey | null>(null);
   const [moduleError, setModuleError] = useState('');
@@ -53,6 +77,9 @@ export default function SettingsPage() {
     setCity(settings.city);
     setCountry(settings.country);
     setAllowBillingClerkInvoiceEdit(settings.allowBillingClerkInvoiceEdit);
+    setCurrency(settings.currency);
+    setTaxLabel(settings.taxLabel);
+    setRolePermissions(settings.rolePermissions);
   }, [settings]);
 
   const toggleModule = async (key: ModuleKey) => {
@@ -61,6 +88,14 @@ export default function SettingsPage() {
     const { error } = await updateModules({ [key]: !modules[key] });
     if (error) setModuleError(error);
     setModuleSaving(null);
+  };
+
+  const toggleRolePage = (role: ShareableRole, page: PageKey) => {
+    const current = rolePermissions[role] ?? DEFAULT_ROLE_PAGES[role];
+    const next = current.includes(page) ? current.filter((p) => p !== page) : [...current, page];
+    const updated = { ...rolePermissions, [role]: next };
+    setRolePermissions(updated);
+    updateSettings({ rolePermissions: updated });
   };
 
   const handleSave = () => {
@@ -76,6 +111,8 @@ export default function SettingsPage() {
       city,
       country,
       allowBillingClerkInvoiceEdit,
+      currency,
+      taxLabel,
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
@@ -103,6 +140,53 @@ export default function SettingsPage() {
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
+
+  // Only admins manage hospital-wide branding/contact/billing/module
+  // settings. Everyone else just gets their own theme preference.
+  if (!isAdmin(user?.role)) {
+    return (
+      <div className="space-y-6 max-w-xl">
+        <div className="flex items-center gap-4">
+          <Link href="/dashboard">
+            <button className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+              <ArrowLeft className="w-5 h-5 text-slate-300" />
+            </button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold heading-gradient">Preferences</h1>
+            <p className="text-slate-400 mt-1">Personal display settings</p>
+          </div>
+        </div>
+
+        {saved && (
+          <div className="glass-card rounded-2xl p-4 border-emerald-400/50 bg-gradient-to-r from-emerald-600/20 to-emerald-500/10">
+            <p className="text-emerald-200 font-semibold">✓ Saved!</p>
+          </div>
+        )}
+
+        <div className="glass-card rounded-2xl p-6 space-y-4">
+          <h2 className="text-lg font-bold text-white">Appearance</h2>
+          <div className="grid grid-cols-3 gap-3">
+            {(['light', 'dark', 'system'] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTheme(t)}
+                className={`flex flex-col items-center gap-2 p-4 rounded-lg transition-all ${
+                  theme === t ? 'bg-indigo-600/30 border-2 border-indigo-500/50' : 'bg-white/5 border border-slate-700/50 hover:bg-white/10'
+                }`}
+              >
+                {t === 'light' ? <Sun className="w-6 h-6" /> : t === 'dark' ? <Moon className="w-6 h-6" /> : <Monitor className="w-6 h-6" />}
+                <span className="text-xs font-semibold capitalize">{t}</span>
+              </button>
+            ))}
+          </div>
+          <Button onClick={() => { updateSettings({ theme }); setSaved(true); setTimeout(() => setSaved(false), 3000); }} className="gradient-primary">
+            Save
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -303,6 +387,27 @@ export default function SettingsPage() {
             </div>
           </div>
 
+          {/* Currency & Tax */}
+          <div className="glass-card rounded-2xl p-6 space-y-4">
+            <div>
+              <h2 className="text-xl font-bold text-white">Currency & Tax</h2>
+              <p className="text-sm text-slate-400 mt-1">Used across invoices, reports, and payroll.</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-semibold text-slate-300 block mb-2">Currency</label>
+                <select value={currency} onChange={(e) => setCurrency(e.target.value)} className="glass-input w-full px-4 py-3 rounded-lg text-white">
+                  {CURRENCY_OPTIONS.map((c) => <option key={c.code} value={c.code} className="text-black">{c.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-slate-300 block mb-2">Tax Label</label>
+                <Input value={taxLabel} onChange={(e) => setTaxLabel(e.target.value)} placeholder="e.g. GST, VAT, Sales Tax" />
+                <p className="text-xs text-slate-500 mt-1">Just labels what's shown on invoices — the amount is still entered manually per invoice.</p>
+              </div>
+            </div>
+          </div>
+
           {/* Billing Controls */}
           {isAdmin(user?.role) && (
             <div className="glass-card rounded-2xl p-6 space-y-3">
@@ -356,6 +461,44 @@ export default function SettingsPage() {
               <p className="text-xs text-slate-500 pt-2 border-t border-white/10">
                 Want to add a module? Reach out to PLYXIO support to update your plan.
               </p>
+            </div>
+          )}
+
+          {/* Role Page Access */}
+          {isAdmin(user?.role) && (
+            <div className="glass-card rounded-2xl p-6 space-y-4">
+              <div>
+                <h2 className="text-xl font-bold text-white flex items-center gap-2"><Users className="w-5 h-5 text-indigo-300" />Role Page Access</h2>
+                <p className="text-sm text-slate-400 mt-1">Choose exactly which pages each staff role sees in their sidebar. Saves instantly.</p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-[600px]">
+                  <thead>
+                    <tr className="text-left text-slate-400">
+                      <th className="py-2 pr-4">Page</th>
+                      {SHAREABLE_ROLES.map(({ role, label }) => (
+                        <th key={role} className="py-2 px-2 text-center font-medium">{label}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(Object.keys(PAGE_LABELS) as PageKey[]).map((page) => (
+                      <tr key={page} className="border-t border-white/5">
+                        <td className="py-2.5 pr-4 text-white">{PAGE_LABELS[page]}</td>
+                        {SHAREABLE_ROLES.map(({ role }) => {
+                          const pages = rolePermissions[role] ?? DEFAULT_ROLE_PAGES[role];
+                          const checked = pages.includes(page);
+                          return (
+                            <td key={role} className="py-2.5 px-2 text-center">
+                              <input type="checkbox" checked={checked} onChange={() => toggleRolePage(role, page)} className="w-4 h-4" />
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>

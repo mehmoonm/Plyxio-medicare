@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { usePatientAuth } from '@/lib/patient-auth-context';
 import { supabase } from '@/lib/supabase/client';
 import { generateInvoicePdf, printInvoicePdf } from '@/lib/pdf/invoice-pdf';
+import { currencySymbol } from '@/lib/currency';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, CreditCard, Download, Printer } from 'lucide-react';
@@ -42,7 +43,7 @@ export default function PortalInvoiceDetailPage() {
   useEffect(() => {
     if (!patient?.hospitalId) return;
     (async () => {
-      const { data } = await supabase.from('Hospital').select('name, phone, email, address, city').eq('id', patient.hospitalId).single();
+      const { data } = await supabase.from('Hospital').select('name, logoUrl, phone, email, address, city, currency, taxLabel').eq('id', patient.hospitalId).single();
       setHospital(data);
     })();
   }, [patient?.hospitalId]);
@@ -74,10 +75,13 @@ export default function PortalInvoiceDetailPage() {
 
   const buildPdfData = () => ({
     hospitalName: hospital?.name || 'PLYXIO Vitals',
+    hospitalLogo: hospital?.logoUrl,
     hospitalPhone: hospital?.phone,
     hospitalEmail: hospital?.email,
     hospitalAddress: hospital?.address,
     hospitalCity: hospital?.city,
+    currencySymbol: currencySymbol(hospital?.currency),
+    taxLabel: hospital?.taxLabel,
     invoiceNo: invoice.invoiceNo,
     createdAt: invoice.createdAt,
     status: invoice.status,

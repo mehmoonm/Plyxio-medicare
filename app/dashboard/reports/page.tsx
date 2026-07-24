@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth-context';
 import { isAdmin } from '@/lib/permissions';
+import { useSettings } from '@/lib/settings-context';
+import { currencySymbol } from '@/lib/currency';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { TrendingUp, Users, Calendar, CheckCircle2 } from 'lucide-react';
 
@@ -30,12 +32,15 @@ function lastNMonthKeys(n: number) {
 
 export default function ReportsPage() {
   const { user } = useAuth();
+  const { settings } = useSettings();
+  const currency = currencySymbol(settings.currency);
   const [loading, setLoading] = useState(true);
   const [revenueData, setRevenueData] = useState<{ month: string; revenue: number }[]>([]);
   const [appointmentData, setAppointmentData] = useState<{ month: string; total: number; completed: number; cancelled: number; noShow: number }[]>([]);
   const [patientGrowth, setPatientGrowth] = useState<{ month: string; newPatients: number }[]>([]);
   const [doctorStats, setDoctorStats] = useState<any[]>([]);
   const [categoryRevenue, setCategoryRevenue] = useState<{ category: string; amount: number }[]>([]);
+  const [expenseByCategory, setExpenseByCategory] = useState<{ category: string; amount: number }[]>([]);
   const [topDiagnoses, setTopDiagnoses] = useState<{ diagnosis: string; count: number }[]>([]);
   const [totals, setTotals] = useState({ revenue: 0, patients: 0, appointments: 0, completionRate: 0 });
 
@@ -46,7 +51,7 @@ export default function ReportsPage() {
       monthsCutoff.setMonth(monthsCutoff.getMonth() - MONTHS_BACK);
       const cutoffIso = monthsCutoff.toISOString();
 
-      const [paymentsRes, appointmentsRes, patientsRes, doctorsRes, allPatientsCount, allInvoicesRes, invoiceItemsRes, diagnosesRes] = await Promise.all([
+      const [paymentsRes, appointmentsRes, patientsRes, doctorsRes, allPatientsCount, allInvoicesRes, invoiceItemsRes, diagnosesRes, expensesRes] = await Promise.all([
         supabase.from('Payment').select('amount, paidAt').gte('paidAt', cutoffIso),
         supabase.from('Appointment').select('scheduledAt, status, doctorId, User(fullName)').gte('scheduledAt', cutoffIso),
         supabase.from('Patient').select('createdAt').gte('createdAt', cutoffIso),
@@ -55,6 +60,7 @@ export default function ReportsPage() {
         supabase.from('Invoice').select('amountPaid, status'),
         supabase.from('InvoiceItem').select('category, amount, Invoice!inner(createdAt)').gte('Invoice.createdAt', cutoffIso),
         supabase.from('Encounter').select('diagnosis').gte('createdAt', cutoffIso).not('diagnosis', 'is', null),
+        supabase.from('Expense').select('category, amount, expenseDate').gte('expenseDate', cutoffIso.slice(0, 10)),
       ]);
 
       const monthKeys = lastNMonthKeys(MONTHS_BACK);
@@ -103,6 +109,14 @@ export default function ReportsPage() {
         catTotals[cat] = (catTotals[cat] || 0) + Number(it.amount || 0);
       }
       setCategoryRevenue(Object.entries(catTotals).map(([category, amount]) => ({ category, amount: Math.round(amount) })).sort((a, b) => b.amount - a.amount));
+
+      // Expenses by category
+      const expTotals: Record<string, number> = {};
+      for (const ex of expensesRes.data || []) {
+        const cat = ex.category || 'Other';
+        expTotals[cat] = (expTotals[cat] || 0) + Number(ex.amount || 0);
+      }
+      setExpenseByCategory(Object.entries(expTotals).map(([category, amount]) => ({ category, amount: Math.round(amount) })).sort((a, b) => b.amount - a.amount));
 
       // Most common diagnoses -- loosely grouped by trimmed/lowercased text
       // since diagnosis is free text (e.g. "Flu" and "flu" count together)
@@ -155,7 +169,7 @@ export default function ReportsPage() {
             <p className="text-gray-300 text-sm font-semibold uppercase tracking-wider">Total Revenue</p>
             <TrendingUp className="w-5 h-5 text-emerald-400" />
           </div>
-          <p className="text-3xl font-bold text-white">Rs {totals.revenue.toLocaleString()}</p>
+          <p className="text-3xl font-bold text-white">{currency} {totals.revenue.toLocaleString()}</p>
         </div>
         <div className="glass-card rounded-2xl p-6">
           <div className="flex items-center justify-between mb-3">
@@ -187,7 +201,7 @@ export default function ReportsPage() {
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
             <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} />
             <YAxis stroke="#94a3b8" fontSize={12} />
-            <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff' }} formatter={(v: number) => [`Rs ${v.toLocaleString()}`, 'Revenue']} />
+            <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff' }} formatter={(v: number) => [`${currency} ${v.toLocaleString()}`, 'Revenue']} />
             <Line type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={2} dot={{ fill: '#6366f1' }} />
           </LineChart>
         </ResponsiveContainer>
@@ -256,7 +270,7 @@ export default function ReportsPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="glass-card rounded-2xl overflow-hidden">
           <div className="p-6 pb-0">
             <h2 className="text-lg font-bold text-white mb-1">Revenue by Category</h2>
@@ -272,10 +286,37 @@ export default function ReportsPage() {
                   <div key={c.category} className="space-y-1">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-300">{c.category}</span>
-                      <span className="text-white font-semibold">Rs {c.amount.toLocaleString()}</span>
+                      <span className="text-white font-semibold">{currency} {c.amount.toLocaleString()}</span>
                     </div>
                     <div className="h-2 bg-white/5 rounded-full overflow-hidden">
                       <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${(c.amount / max) * 100}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="glass-card rounded-2xl overflow-hidden">
+          <div className="p-6 pb-0">
+            <h2 className="text-lg font-bold text-white mb-1">Expenses by Category</h2>
+            <p className="text-xs text-gray-400 mb-4">Where your operating costs are going ({MONTHS_BACK}mo)</p>
+          </div>
+          {expenseByCategory.length === 0 ? (
+            <p className="text-gray-400 p-6 pt-0">No expense data yet</p>
+          ) : (
+            <div className="px-6 pb-6 space-y-2">
+              {expenseByCategory.map((c) => {
+                const max = expenseByCategory[0]?.amount || 1;
+                return (
+                  <div key={c.category} className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-300">{c.category}</span>
+                      <span className="text-white font-semibold">{currency} {c.amount.toLocaleString()}</span>
+                    </div>
+                    <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                      <div className="h-full bg-rose-500 rounded-full" style={{ width: `${(c.amount / max) * 100}%` }} />
                     </div>
                   </div>
                 );
