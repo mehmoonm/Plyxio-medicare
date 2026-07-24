@@ -35,7 +35,9 @@ export default function PatientsPage() {
       (p) =>
         p.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.mrn.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.email || '').toLowerCase().includes(searchTerm.toLowerCase())
+        (p.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (p.phone || '').includes(searchTerm) ||
+        (p.cnic || '').includes(searchTerm)
     );
 
   const handleDelete = async (patient: DbPatient) => {
@@ -97,7 +99,7 @@ export default function PatientsPage() {
         <div className="flex items-center gap-3 bg-white/5 rounded-xl px-4 py-3 border border-white/10 focus-within:border-white/30 transition-all flex-1">
           <Search className="w-5 h-5 text-gray-400" />
           <Input
-            placeholder="Search patients by name, MRN, or email..."
+            placeholder="Search patients by name, MRN, phone, CNIC, or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="glass-input border-0 bg-transparent focus-visible:ring-0 text-white placeholder-gray-400"

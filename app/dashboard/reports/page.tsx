@@ -8,8 +8,18 @@ import { useSettings } from '@/lib/settings-context';
 import { currencySymbol } from '@/lib/currency';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { TrendingUp, Users, Calendar, CheckCircle2 } from 'lucide-react';
+import { getPresetRange, type DateRangePreset } from '@/lib/date-ranges';
+import { DateRangePicker } from '@/components/dashboard/date-range-picker';
 
-const MONTHS_BACK = 6;
+function dayKey(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function dayLabel(key: string) {
+  const d = new Date(`${key}T00:00:00`);
+  return d.toLocaleString('default', { month: 'short', day: 'numeric' });
+}
+
 
 function monthKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
@@ -18,16 +28,6 @@ function monthKey(date: Date) {
 function monthLabel(key: string) {
   const [y, m] = key.split('-').map(Number);
   return new Date(y, m - 1, 1).toLocaleString('default', { month: 'short', year: '2-digit' });
-}
-
-function lastNMonthKeys(n: number) {
-  const keys: string[] = [];
-  const now = new Date();
-  for (let i = n - 1; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    keys.push(monthKey(d));
-  }
-  return keys;
 }
 
 export default function ReportsPage() {
@@ -45,64 +45,88 @@ export default function ReportsPage() {
   const [departmentExpense, setDepartmentExpense] = useState<{ department: string; amount: number }[]>([]);
   const [topDiagnoses, setTopDiagnoses] = useState<{ diagnosis: string; count: number }[]>([]);
   const [totals, setTotals] = useState({ revenue: 0, patients: 0, appointments: 0, completionRate: 0 });
+  const [preset, setPreset] = useState<DateRangePreset>('month');
+  const [customStart, setCustomStart] = useState(new Date().toISOString().slice(0, 10));
+  const [customEnd, setCustomEnd] = useState(new Date().toISOString().slice(0, 10));
+
+  const range = getPresetRange(preset, customStart, customEnd);
 
   useEffect(() => {
     if (!isAdmin(user?.role)) { setLoading(false); return; }
     (async () => {
-      const monthsCutoff = new Date();
-      monthsCutoff.setMonth(monthsCutoff.getMonth() - MONTHS_BACK);
-      const cutoffIso = monthsCutoff.toISOString();
+      const startIso = new Date(`${range.start}T00:00:00`).toISOString();
+      const endIso = new Date(`${range.end}T23:59:59`).toISOString();
+      const spanDays = Math.max(1, Math.round((new Date(range.end).getTime() - new Date(range.start).getTime()) / (1000 * 60 * 60 * 24)));
+      const useDailyBuckets = spanDays <= 31;
 
-      const [paymentsRes, appointmentsRes, patientsRes, doctorsRes, allPatientsCount, allInvoicesRes, invoiceItemsRes, diagnosesRes, expensesRes] = await Promise.all([
-        supabase.from('Payment').select('amount, paidAt').gte('paidAt', cutoffIso),
-        supabase.from('Appointment').select('scheduledAt, status, doctorId, User(fullName)').gte('scheduledAt', cutoffIso),
-        supabase.from('Patient').select('createdAt').gte('createdAt', cutoffIso),
+      const [paymentsRes, appointmentsRes, patientsRes, doctorsRes, allPatientsCount, invoiceItemsRes, diagnosesRes, expensesRes] = await Promise.all([
+        supabase.from('Payment').select('amount, paidAt').gte('paidAt', startIso).lte('paidAt', endIso),
+        supabase.from('Appointment').select('scheduledAt, status, doctorId, User(fullName)').gte('scheduledAt', startIso).lte('scheduledAt', endIso),
+        supabase.from('Patient').select('createdAt').gte('createdAt', startIso).lte('createdAt', endIso),
         supabase.from('User').select('id, fullName').eq('role', 'DOCTOR').eq('isActive', true),
         supabase.from('Patient').select('id', { count: 'exact', head: true }),
-        supabase.from('Invoice').select('amountPaid, status'),
-        supabase.from('InvoiceItem').select('category, amount, departmentId, Department(name), Invoice!inner(createdAt)').gte('Invoice.createdAt', cutoffIso),
-        supabase.from('Encounter').select('diagnosis').gte('createdAt', cutoffIso).not('diagnosis', 'is', null),
-        supabase.from('Expense').select('category, amount, expenseDate, departmentId, Department(name)').gte('expenseDate', cutoffIso.slice(0, 10)),
+        supabase.from('InvoiceItem').select('category, amount, departmentId, Department(name), Invoice!inner(createdAt)').gte('Invoice.createdAt', startIso).lte('Invoice.createdAt', endIso),
+        supabase.from('Encounter').select('diagnosis').gte('createdAt', startIso).lte('createdAt', endIso).not('diagnosis', 'is', null),
+        supabase.from('Expense').select('category, amount, expenseDate, departmentId, Department(name)').gte('expenseDate', range.start).lte('expenseDate', range.end),
       ]);
 
-      const monthKeys = lastNMonthKeys(MONTHS_BACK);
-
-      // Revenue by month
-      const revByMonth: Record<string, number> = Object.fromEntries(monthKeys.map((k) => [k, 0]));
-      for (const p of paymentsRes.data || []) {
-        const k = monthKey(new Date(p.paidAt));
-        if (k in revByMonth) revByMonth[k] += Number(p.amount);
+      // Bucket keys: daily for short ranges (<=31 days), monthly otherwise
+      const bucketKeys: string[] = [];
+      if (useDailyBuckets) {
+        const cur = new Date(`${range.start}T00:00:00`);
+        const end = new Date(`${range.end}T00:00:00`);
+        while (cur <= end) {
+          bucketKeys.push(dayKey(cur));
+          cur.setDate(cur.getDate() + 1);
+        }
+      } else {
+        const cur = new Date(range.start);
+        cur.setDate(1);
+        const end = new Date(range.end);
+        while (cur <= end) {
+          bucketKeys.push(monthKey(cur));
+          cur.setMonth(cur.getMonth() + 1);
+        }
       }
-      setRevenueData(monthKeys.map((k) => ({ month: monthLabel(k), revenue: Math.round(revByMonth[k]) })));
+      const bucketOf = (d: Date) => (useDailyBuckets ? dayKey(d) : monthKey(d));
+      const bucketLabel = (k: string) => (useDailyBuckets ? dayLabel(k) : monthLabel(k));
 
-      // Appointments by month + status breakdown
-      const aptByMonth: Record<string, { total: number; completed: number; cancelled: number; noShow: number }> = Object.fromEntries(
-        monthKeys.map((k) => [k, { total: 0, completed: 0, cancelled: 0, noShow: 0 }])
+      // Revenue by bucket
+      const revByBucket: Record<string, number> = Object.fromEntries(bucketKeys.map((k) => [k, 0]));
+      for (const p of paymentsRes.data || []) {
+        const k = bucketOf(new Date(p.paidAt));
+        if (k in revByBucket) revByBucket[k] += Number(p.amount);
+      }
+      setRevenueData(bucketKeys.map((k) => ({ month: bucketLabel(k), revenue: Math.round(revByBucket[k]) })));
+
+      // Appointments by bucket + status breakdown
+      const aptByBucket: Record<string, { total: number; completed: number; cancelled: number; noShow: number }> = Object.fromEntries(
+        bucketKeys.map((k) => [k, { total: 0, completed: 0, cancelled: 0, noShow: 0 }])
       );
       const doctorCounts: Record<string, { name: string; total: number; completed: number }> = {};
       for (const a of appointmentsRes.data || []) {
-        const k = monthKey(new Date(a.scheduledAt));
-        if (k in aptByMonth) {
-          aptByMonth[k].total += 1;
-          if (a.status === 'COMPLETED') aptByMonth[k].completed += 1;
-          if (a.status === 'CANCELLED') aptByMonth[k].cancelled += 1;
-          if (a.status === 'NO_SHOW') aptByMonth[k].noShow += 1;
+        const k = bucketOf(new Date(a.scheduledAt));
+        if (k in aptByBucket) {
+          aptByBucket[k].total += 1;
+          if (a.status === 'COMPLETED') aptByBucket[k].completed += 1;
+          if (a.status === 'CANCELLED') aptByBucket[k].cancelled += 1;
+          if (a.status === 'NO_SHOW') aptByBucket[k].noShow += 1;
         }
         const docName = (a as any).User?.fullName || 'Unassigned';
         if (!doctorCounts[docName]) doctorCounts[docName] = { name: docName, total: 0, completed: 0 };
         doctorCounts[docName].total += 1;
         if (a.status === 'COMPLETED') doctorCounts[docName].completed += 1;
       }
-      setAppointmentData(monthKeys.map((k) => ({ month: monthLabel(k), ...aptByMonth[k] })));
+      setAppointmentData(bucketKeys.map((k) => ({ month: bucketLabel(k), ...aptByBucket[k] })));
       setDoctorStats(Object.values(doctorCounts).sort((a, b) => b.total - a.total).slice(0, 8));
 
-      // Patient growth by month
-      const patByMonth: Record<string, number> = Object.fromEntries(monthKeys.map((k) => [k, 0]));
+      // Patient growth by bucket
+      const patByBucket: Record<string, number> = Object.fromEntries(bucketKeys.map((k) => [k, 0]));
       for (const p of patientsRes.data || []) {
-        const k = monthKey(new Date(p.createdAt));
-        if (k in patByMonth) patByMonth[k] += 1;
+        const k = bucketOf(new Date(p.createdAt));
+        if (k in patByBucket) patByBucket[k] += 1;
       }
-      setPatientGrowth(monthKeys.map((k) => ({ month: monthLabel(k), newPatients: patByMonth[k] })));
+      setPatientGrowth(bucketKeys.map((k) => ({ month: bucketLabel(k), newPatients: patByBucket[k] })));
 
       // Revenue by category (Pharmacy, Bed Charges, Lab, etc)
       const catTotals: Record<string, number> = {};
@@ -155,8 +179,8 @@ export default function ReportsPage() {
           .map((d) => ({ diagnosis: d.label, count: d.count }))
       );
 
-      // Top-line totals
-      const totalRevenue = (allInvoicesRes.data || []).reduce((s, i: any) => s + Number(i.amountPaid || 0), 0);
+      // Top-line totals -- scoped to the selected period, not lifetime
+      const totalRevenue = (paymentsRes.data || []).reduce((s, p: any) => s + Number(p.amount || 0), 0);
       const totalAppointments = (appointmentsRes.data || []).length;
       const completedCount = (appointmentsRes.data || []).filter((a: any) => a.status === 'COMPLETED').length;
       setTotals({
@@ -168,7 +192,7 @@ export default function ReportsPage() {
 
       setLoading(false);
     })();
-  }, [user]);
+  }, [user, preset, customStart, customEnd]);
 
   if (!isAdmin(user?.role)) {
     return <div className="text-gray-400">This page is only available to hospital admins.</div>;
@@ -180,7 +204,16 @@ export default function ReportsPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-4xl font-bold heading-gradient">Reports & Analytics</h1>
-        <p className="text-gray-400 mt-2">Last {MONTHS_BACK} months, updated live from your data</p>
+        <p className="text-gray-400 mt-2">{range.label}, updated live from your data</p>
+      </div>
+
+      <div className="glass-card rounded-2xl p-4">
+        <DateRangePicker
+          preset={preset}
+          customStart={customStart}
+          customEnd={customEnd}
+          onChange={(p, s, e) => { setPreset(p); setCustomStart(s); setCustomEnd(e); }}
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -200,7 +233,7 @@ export default function ReportsPage() {
         </div>
         <div className="glass-card rounded-2xl p-6">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-gray-300 text-sm font-semibold uppercase tracking-wider">Appointments ({MONTHS_BACK}mo)</p>
+            <p className="text-gray-300 text-sm font-semibold uppercase tracking-wider">Appointments ({range.label})</p>
             <Calendar className="w-5 h-5 text-cyan-400" />
           </div>
           <p className="text-3xl font-bold text-white">{totals.appointments}</p>
@@ -260,7 +293,7 @@ export default function ReportsPage() {
 
       <div className="glass-card rounded-2xl overflow-hidden">
         <div className="p-6 pb-0">
-          <h2 className="text-lg font-bold text-white mb-4">Doctor Performance ({MONTHS_BACK}mo)</h2>
+          <h2 className="text-lg font-bold text-white mb-4">Doctor Performance ({range.label})</h2>
         </div>
         {doctorStats.length === 0 ? (
           <p className="text-gray-400 p-6 pt-0">No appointment data yet</p>
@@ -294,7 +327,7 @@ export default function ReportsPage() {
         <div className="glass-card rounded-2xl overflow-hidden">
           <div className="p-6 pb-0">
             <h2 className="text-lg font-bold text-white mb-1">Revenue by Category</h2>
-            <p className="text-xs text-gray-400 mb-4">Where your invoice charges are coming from ({MONTHS_BACK}mo)</p>
+            <p className="text-xs text-gray-400 mb-4">Where your invoice charges are coming from ({range.label})</p>
           </div>
           {categoryRevenue.length === 0 ? (
             <p className="text-gray-400 p-6 pt-0">No invoice data yet</p>
@@ -321,7 +354,7 @@ export default function ReportsPage() {
         <div className="glass-card rounded-2xl overflow-hidden">
           <div className="p-6 pb-0">
             <h2 className="text-lg font-bold text-white mb-1">Expenses by Category</h2>
-            <p className="text-xs text-gray-400 mb-4">Where your operating costs are going ({MONTHS_BACK}mo)</p>
+            <p className="text-xs text-gray-400 mb-4">Where your operating costs are going ({range.label})</p>
           </div>
           {expenseByCategory.length === 0 ? (
             <p className="text-gray-400 p-6 pt-0">No expense data yet</p>
@@ -348,7 +381,7 @@ export default function ReportsPage() {
         <div className="glass-card rounded-2xl overflow-hidden">
           <div className="p-6 pb-0">
             <h2 className="text-lg font-bold text-white mb-1">Most Common Diagnoses</h2>
-            <p className="text-xs text-gray-400 mb-4">From visit records ({MONTHS_BACK}mo) — grouped loosely by spelling</p>
+            <p className="text-xs text-gray-400 mb-4">From visit records ({range.label}) — grouped loosely by spelling</p>
           </div>
           {topDiagnoses.length === 0 ? (
             <p className="text-gray-400 p-6 pt-0">No diagnosis data yet</p>
@@ -378,7 +411,7 @@ export default function ReportsPage() {
           <div className="glass-card rounded-2xl overflow-hidden">
             <div className="p-6 pb-0">
               <h2 className="text-lg font-bold text-white mb-1">Revenue by Department</h2>
-              <p className="text-xs text-gray-400 mb-4">Which departments are generating revenue ({MONTHS_BACK}mo)</p>
+              <p className="text-xs text-gray-400 mb-4">Which departments are generating revenue ({range.label})</p>
             </div>
             {departmentRevenue.length === 0 ? (
               <p className="text-gray-400 p-6 pt-0">No department-tagged invoice items yet. Tag line items with a department when billing.</p>
@@ -405,7 +438,7 @@ export default function ReportsPage() {
           <div className="glass-card rounded-2xl overflow-hidden">
             <div className="p-6 pb-0">
               <h2 className="text-lg font-bold text-white mb-1">Expenses by Department</h2>
-              <p className="text-xs text-gray-400 mb-4">Which departments are costing the most ({MONTHS_BACK}mo)</p>
+              <p className="text-xs text-gray-400 mb-4">Which departments are costing the most ({range.label})</p>
             </div>
             {departmentExpense.length === 0 ? (
               <p className="text-gray-400 p-6 pt-0">No department-tagged expenses yet. Tag expenses with a department when adding them.</p>

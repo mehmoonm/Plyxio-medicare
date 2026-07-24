@@ -138,11 +138,10 @@ export default function SettingsPage() {
   };
 
   const handleReset = () => {
-    resetSettings();
+    // Only resets visual style choices -- hospital name, logo, and contact
+    // info are real data, not stylistic defaults, so they're left alone.
     setPrimaryColor('#6366f1');
     setAccentColor('#06b6d4');
-    setHospitalName('PLYXIO Vitals');
-    setLogo(null);
     setTheme('dark');
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
@@ -603,7 +602,7 @@ export default function SettingsPage() {
                 className="w-full bg-red-600/20 border border-red-500/50 text-red-200 hover:bg-red-600/30 font-semibold py-2 rounded-lg transition-all duration-300 flex items-center justify-center gap-2"
               >
                 <RotateCcw className="w-4 h-4" />
-                Reset to Default
+                Reset Colors & Theme
               </Button>
             </div>
           </div>

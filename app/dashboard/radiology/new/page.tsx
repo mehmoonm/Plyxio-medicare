@@ -7,34 +7,47 @@ import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Save, Plus } from 'lucide-react';
-import { canManageRadiology } from '@/lib/permissions';
+import { ArrowLeft, Save, Plus, Settings2 } from 'lucide-react';
+import { canManageRadiology, canManageRadiologyCatalog } from '@/lib/permissions';
 import { RoleGuard } from '@/components/dashboard/role-guard';
 import { QuickAddPatientModal } from '@/components/dashboard/quick-add-patient-modal';
-
-const STUDY_TYPES = ['X-Ray', 'CT Scan', 'MRI', 'Ultrasound', 'Mammography'];
 
 export default function NewRadiologyOrderPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [patients, setPatients] = useState<any[]>([]);
-  const [form, setForm] = useState({ patientId: '', studyType: 'X-Ray', bodyPart: '', priority: 'ROUTINE' });
+  const [catalog, setCatalog] = useState<any[]>([]);
+  const [form, setForm] = useState({ patientId: '', studyType: '', bodyPart: '', priority: 'ROUTINE' });
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from('Patient').select('id, fullName, mrn').order('fullName');
-      setPatients(data || []);
+      const [p, c] = await Promise.all([
+        supabase.from('Patient').select('id, fullName, mrn').order('fullName'),
+        supabase.from('RadiologyTestCatalog').select('*').eq('isActive', true).order('name'),
+      ]);
+      setPatients(p.data || []);
+      setCatalog(c.data || []);
+      if (c.data && c.data.length > 0) {
+        setForm((f) => ({ ...f, studyType: c.data[0].name, bodyPart: c.data[0].bodyPartDefault || '' }));
+      }
     })();
   }, []);
+
+  const handleStudyTypeChange = (name: string) => {
+    const test = catalog.find((t) => t.name === name);
+    setForm((f) => ({ ...f, studyType: name, bodyPart: test?.bodyPartDefault || f.bodyPart }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.patientId) { setError('Select a patient.'); return; }
     setLoading(true);
     setError('');
+
+    const selectedTest = catalog.find((t) => t.name === form.studyType);
 
     const { data: order, error: orderError } = await supabase
       .from('RadiologyOrder')
@@ -47,6 +60,7 @@ export default function NewRadiologyOrderPage() {
         status: 'ORDERED',
         priority: form.priority,
         orderedAt: new Date().toISOString(),
+        cost: selectedTest?.price ?? null,
       })
       .select()
       .single();
@@ -87,8 +101,8 @@ export default function NewRadiologyOrderPage() {
 
         <div>
           <label className="text-sm font-semibold text-gray-200 block mb-2">Study Type *</label>
-          <select value={form.studyType} onChange={(e) => setForm({ ...form, studyType: e.target.value })} className="glass-input w-full px-4 py-3 rounded-lg text-white">
-            {STUDY_TYPES.map((s) => <option key={s} value={s} className="text-black">{s}</option>)}
+          <select value={form.studyType} onChange={(e) => handleStudyTypeChange(e.target.value)} className="glass-input w-full px-4 py-3 rounded-lg text-white">
+            {catalog.map((t) => <option key={t.id} value={t.name} className="text-black">{t.name}</option>)}
           </select>
         </div>
 

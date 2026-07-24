@@ -51,6 +51,11 @@ export function canManageRadiology(role?: Role | null) {
   return !!role && [...ADMIN, 'RADIOLOGIST', 'DOCTOR'].includes(role);
 }
 
+// Matches the DB's radcat_write policy (narrower than canManageRadiology -- no DOCTOR)
+export function canManageRadiologyCatalog(role?: Role | null) {
+  return !!role && [...ADMIN, 'RADIOLOGIST'].includes(role);
+}
+
 // Matches the DB's admission_write policy (Admission table)
 export function canManageAdmissions(role?: Role | null) {
   return !!role && [...ADMIN, 'DOCTOR', 'NURSE'].includes(role);

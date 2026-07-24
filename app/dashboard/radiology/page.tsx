@@ -5,10 +5,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth-context';
-import { canManageRadiology } from '@/lib/permissions';
+import { canManageRadiology, canManageRadiologyCatalog } from '@/lib/permissions';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Scan } from 'lucide-react';
+import { Plus, Scan, Settings2 } from 'lucide-react';
 
 export default function RadiologyOrdersPage() {
   const router = useRouter();
@@ -45,11 +45,18 @@ export default function RadiologyOrdersPage() {
           <h1 className="text-3xl font-bold heading-gradient">Radiology Orders</h1>
           <p className="text-gray-400 mt-2">Imaging studies and reports</p>
         </div>
-        {canManageRadiology(user?.role) && (
-          <Link href="/dashboard/radiology/new">
-            <Button className="gap-2 gradient-primary"><Plus className="w-4 h-4" />New Order</Button>
-          </Link>
-        )}
+        <div className="flex gap-2">
+          {canManageRadiologyCatalog(user?.role) && (
+            <Link href="/dashboard/radiology/catalog">
+              <Button variant="outline" className="gap-2"><Settings2 className="w-4 h-4" />Manage Tests</Button>
+            </Link>
+          )}
+          {canManageRadiology(user?.role) && (
+            <Link href="/dashboard/radiology/new">
+              <Button className="gap-2 gradient-primary"><Plus className="w-4 h-4" />New Order</Button>
+            </Link>
+          )}
+        </div>
       </div>
 
       <div className="glass-card rounded-2xl overflow-hidden">

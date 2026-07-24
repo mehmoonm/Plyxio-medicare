@@ -5,10 +5,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth-context';
-import { canManageBeds } from '@/lib/permissions';
+import { canManageBeds, isAdmin } from '@/lib/permissions';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, BedDouble } from 'lucide-react';
+import { Plus, BedDouble, Settings2 } from 'lucide-react';
 
 export default function AdmissionsPage() {
   const router = useRouter();
@@ -59,11 +59,18 @@ export default function AdmissionsPage() {
           <h1 className="text-4xl font-bold heading-gradient">Admissions & Beds</h1>
           <p className="text-gray-400 mt-2">Ward occupancy and inpatient admissions</p>
         </div>
-        {canManageBeds(user?.role) && (
-          <Link href="/dashboard/admissions/new">
-            <Button className="gap-2 gradient-primary"><Plus className="w-4 h-4" />New Admission</Button>
-          </Link>
-        )}
+        <div className="flex gap-2">
+          {isAdmin(user?.role) && (
+            <Link href="/dashboard/admissions/beds">
+              <Button variant="outline" className="gap-2"><Settings2 className="w-4 h-4" />Manage Beds & Rooms</Button>
+            </Link>
+          )}
+          {canManageBeds(user?.role) && (
+            <Link href="/dashboard/admissions/new">
+              <Button className="gap-2 gradient-primary"><Plus className="w-4 h-4" />New Admission</Button>
+            </Link>
+          )}
+        </div>
       </div>
 
       <div className="glass-card rounded-2xl p-6 space-y-4">
