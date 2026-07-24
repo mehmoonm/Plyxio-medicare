@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth-context';
 import { canManageAdmissions, canManageBeds } from '@/lib/permissions';
+import { useSettings, canEditModule } from '@/lib/settings-context';
 import { logAudit } from '@/lib/audit-log';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +15,7 @@ import { ArrowLeft, LogOut, NotebookPen } from 'lucide-react';
 export default function AdmissionDetailPage() {
   const params = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { settings } = useSettings();
   const [admission, setAdmission] = useState<any>(null);
   const [notes, setNotes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -125,7 +127,7 @@ export default function AdmissionDetailPage() {
 
         {error && <div className="bg-red-500/20 border border-red-500/50 text-red-200 p-3 rounded-lg text-sm">{error}</div>}
 
-        {canManageBeds(user?.role) && admission.status === 'ADMITTED' && !showDischarge && (
+        {canManageBeds(user?.role) && canEditModule(user?.role, 'admissions', settings.editPermissions) && admission.status === 'ADMITTED' && !showDischarge && (
           <Button onClick={() => setShowDischarge(true)} variant="outline" className="gap-2 text-amber-300 border-amber-400/50 hover:bg-amber-500/10">
             <LogOut className="w-4 h-4" />Discharge Patient
           </Button>
@@ -148,7 +150,7 @@ export default function AdmissionDetailPage() {
       <div className="glass-card rounded-2xl p-6 space-y-4">
         <h2 className="text-lg font-bold text-white flex items-center gap-2"><NotebookPen className="w-5 h-5 text-cyan-400" />Nursing Notes</h2>
 
-        {canManageAdmissions(user?.role) && (
+        {canManageAdmissions(user?.role) && canEditModule(user?.role, 'admissions', settings.editPermissions) && (
           <form onSubmit={addNote} className="flex gap-2">
             <input value={newNote} onChange={(e) => setNewNote(e.target.value)} placeholder="Add a nursing note…" className="glass-input flex-1 px-4 py-3 rounded-lg text-white" />
             <Button type="submit" disabled={savingNote} className="gradient-primary">{savingNote ? 'Saving...' : 'Add'}</Button>

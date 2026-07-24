@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth-context';
 import { canDispense } from '@/lib/permissions';
+import { useSettings, canEditModule } from '@/lib/settings-context';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Save, ExternalLink } from 'lucide-react';
@@ -14,6 +15,7 @@ export default function DispensePrescriptionPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuth();
+  const { settings } = useSettings();
   const [prescription, setPrescription] = useState<any>(null);
   const [batchOptions, setBatchOptions] = useState<Record<string, any[]>>({});
   const [selections, setSelections] = useState<Record<string, { inventoryItemId: string; quantity: number }>>({});
@@ -153,7 +155,7 @@ export default function DispensePrescriptionPage() {
 
         {error && <div className="bg-red-500/20 border border-red-500/50 text-red-200 p-3 rounded-lg text-sm">{error}</div>}
 
-        {!alreadyDispensed && canDispense(user?.role) && (
+        {!alreadyDispensed && canDispense(user?.role) && canEditModule(user?.role, 'pharmacy', settings.editPermissions) && (
           <form onSubmit={handleDispense} className="space-y-4">
             <h3 className="font-semibold text-white">Select Stock to Dispense</h3>
             {prescription.PrescriptionItem.map((item: any) => {

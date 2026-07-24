@@ -198,3 +198,17 @@ export function useSettings() {
   }
   return context;
 }
+
+// Mirrors the database's has_edit_permission() function -- used to hide
+// Add/Edit buttons client-side for roles whose edit permission is off,
+// so they never see an action that would fail server-side anyway.
+// Admins always pass; unset permissions default to allowed.
+export function canEditModule(
+  role: string | undefined | null,
+  module: EditModule,
+  editPermissions: Partial<Record<ShareableRole, Partial<Record<EditModule, boolean>>>>
+): boolean {
+  if (role === 'HOSPITAL_ADMIN' || role === 'SUPER_ADMIN') return true;
+  if (!role) return false;
+  return editPermissions[role as ShareableRole]?.[module] !== false;
+}

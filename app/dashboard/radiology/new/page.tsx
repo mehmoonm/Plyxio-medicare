@@ -9,12 +9,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, Save, Plus, Settings2 } from 'lucide-react';
 import { canManageRadiology, canManageRadiologyCatalog } from '@/lib/permissions';
+import { useSettings, canEditModule } from '@/lib/settings-context';
 import { RoleGuard } from '@/components/dashboard/role-guard';
 import { QuickAddPatientModal } from '@/components/dashboard/quick-add-patient-modal';
 
 export default function NewRadiologyOrderPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { settings } = useSettings();
   const [patients, setPatients] = useState<any[]>([]);
   const [catalog, setCatalog] = useState<any[]>([]);
   const [form, setForm] = useState({ patientId: '', studyType: '', bodyPart: '', priority: 'ROUTINE' });
@@ -71,7 +73,7 @@ export default function NewRadiologyOrderPage() {
   };
 
   return (
-    <RoleGuard allowed={canManageRadiology(user?.role)}>
+    <RoleGuard allowed={canManageRadiology(user?.role) && canEditModule(user?.role, 'radiology', settings.editPermissions)}>
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>

@@ -9,12 +9,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, Save, Plus } from 'lucide-react';
 import { canManageBeds } from '@/lib/permissions';
+import { useSettings, canEditModule } from '@/lib/settings-context';
 import { RoleGuard } from '@/components/dashboard/role-guard';
 import { QuickAddPatientModal } from '@/components/dashboard/quick-add-patient-modal';
 
 export default function NewAdmissionPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { settings } = useSettings();
   const [patients, setPatients] = useState<any[]>([]);
   const [beds, setBeds] = useState<any[]>([]);
   const [doctors, setDoctors] = useState<any[]>([]);
@@ -65,7 +67,7 @@ export default function NewAdmissionPage() {
   };
 
   return (
-    <RoleGuard allowed={canManageBeds(user?.role)}>
+    <RoleGuard allowed={canManageBeds(user?.role) && canEditModule(user?.role, 'admissions', settings.editPermissions)}>
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>

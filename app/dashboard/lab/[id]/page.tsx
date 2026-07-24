@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth-context';
 import { canManageLab } from '@/lib/permissions';
+import { useSettings, canEditModule } from '@/lib/settings-context';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Save, CheckCircle } from 'lucide-react';
@@ -15,6 +16,7 @@ const STATUS_FLOW = ['ORDERED', 'SAMPLE_COLLECTED', 'IN_PROGRESS', 'RESULT_READY
 export default function LabOrderDetailPage() {
   const params = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { settings } = useSettings();
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -100,13 +102,13 @@ export default function LabOrderDetailPage() {
 
         {error && <div className="bg-red-500/20 border border-red-500/50 text-red-200 p-3 rounded-lg text-sm">{error}</div>}
 
-        {canManageLab(user?.role) && order.status !== 'RESULT_READY' && order.status !== 'CANCELLED' && nextStatus && nextStatus !== 'RESULT_READY' && (
+        {canManageLab(user?.role) && canEditModule(user?.role, 'lab', settings.editPermissions) && order.status !== 'RESULT_READY' && order.status !== 'CANCELLED' && nextStatus && nextStatus !== 'RESULT_READY' && (
           <Button onClick={() => advanceStatus(nextStatus)} disabled={busy} variant="outline" className="gap-2 text-cyan-300 border-cyan-400/50">
             <CheckCircle className="w-4 h-4" />Mark as {nextStatus.replace('_', ' ')}
           </Button>
         )}
 
-        {canManageLab(user?.role) && (order.status === 'IN_PROGRESS' || order.status === 'SAMPLE_COLLECTED') && (
+        {canManageLab(user?.role) && canEditModule(user?.role, 'lab', settings.editPermissions) && (order.status === 'IN_PROGRESS' || order.status === 'SAMPLE_COLLECTED') && (
           <form onSubmit={saveResults} className="pt-4 border-t border-white/10 space-y-4">
             <h3 className="font-semibold text-white">Enter Results</h3>
             {order.LabOrderItem.map((item: any) => (

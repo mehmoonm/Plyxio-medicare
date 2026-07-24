@@ -8,12 +8,14 @@ import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Save, Plus } from 'lucide-react';
 import { canManageLab } from '@/lib/permissions';
+import { useSettings, canEditModule } from '@/lib/settings-context';
 import { RoleGuard } from '@/components/dashboard/role-guard';
 import { QuickAddPatientModal } from '@/components/dashboard/quick-add-patient-modal';
 
 export default function NewLabOrderPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { settings } = useSettings();
   const [patients, setPatients] = useState<any[]>([]);
   const [tests, setTests] = useState<any[]>([]);
   const [patientId, setPatientId] = useState('');
@@ -72,7 +74,7 @@ export default function NewLabOrderPage() {
   };
 
   return (
-    <RoleGuard allowed={canManageLab(user?.role)}>
+    <RoleGuard allowed={canManageLab(user?.role) && canEditModule(user?.role, 'lab', settings.editPermissions)}>
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>

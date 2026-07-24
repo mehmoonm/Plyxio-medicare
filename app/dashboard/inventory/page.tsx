@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth-context';
 import { canManageInventory } from '@/lib/permissions';
+import { canEditModule } from '@/lib/settings-context';
 import { useSettings } from '@/lib/settings-context';
 import { currencySymbol } from '@/lib/currency';
 import type { DbInventoryItem } from '@/lib/supabase/types';
@@ -44,7 +45,7 @@ export default function InventoryPage() {
           <h1 className="text-3xl font-bold text-gray-900">Inventory Management</h1>
           <p className="text-gray-500 mt-2">Pharmacy stock and drug inventory</p>
         </div>
-        {canManageInventory(user?.role) && (
+        {canManageInventory(user?.role) && canEditModule(user?.role, 'inventory', settings.editPermissions) && (
           <Link href="/dashboard/inventory/new">
             <Button className="gap-2"><Plus className="w-4 h-4" />Add Item</Button>
           </Link>
@@ -86,7 +87,7 @@ export default function InventoryPage() {
                   <th className="text-left py-3 px-4 font-semibold text-gray-600 text-sm">Reorder Level</th>
                   <th className="text-left py-3 px-4 font-semibold text-gray-600 text-sm">Unit Cost</th>
                   <th className="text-left py-3 px-4 font-semibold text-gray-600 text-sm">Status</th>
-                  {canManageInventory(user?.role) && <th className="text-left py-3 px-4 font-semibold text-gray-600 text-sm">Actions</th>}
+                  {canManageInventory(user?.role) && canEditModule(user?.role, 'inventory', settings.editPermissions) && <th className="text-left py-3 px-4 font-semibold text-gray-600 text-sm">Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -107,7 +108,7 @@ export default function InventoryPage() {
                           {item.quantityOnHand < item.reorderLevel ? 'Low Stock' : 'In Stock'}
                         </Badge>
                       </td>
-                      {canManageInventory(user?.role) && (
+                      {canManageInventory(user?.role) && canEditModule(user?.role, 'inventory', settings.editPermissions) && (
                         <td className="py-3 px-4">
                           <Link href={`/dashboard/inventory/${item.id}/edit`}>
                             <button className="p-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600" title="Edit">

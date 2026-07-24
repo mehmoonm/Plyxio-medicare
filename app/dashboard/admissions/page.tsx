@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth-context';
 import { canManageBeds, isAdmin } from '@/lib/permissions';
+import { useSettings, canEditModule } from '@/lib/settings-context';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Plus, BedDouble, Settings2 } from 'lucide-react';
@@ -13,6 +14,7 @@ import { Plus, BedDouble, Settings2 } from 'lucide-react';
 export default function AdmissionsPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { settings } = useSettings();
   const [wards, setWards] = useState<any[]>([]);
   const [admissions, setAdmissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,7 +67,7 @@ export default function AdmissionsPage() {
               <Button variant="outline" className="gap-2"><Settings2 className="w-4 h-4" />Manage Beds & Rooms</Button>
             </Link>
           )}
-          {canManageBeds(user?.role) && (
+          {canManageBeds(user?.role) && canEditModule(user?.role, 'admissions', settings.editPermissions) && (
             <Link href="/dashboard/admissions/new">
               <Button className="gap-2 gradient-primary"><Plus className="w-4 h-4" />New Admission</Button>
             </Link>

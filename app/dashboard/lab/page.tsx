@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth-context';
 import { canManageLab, canManageLabCatalog } from '@/lib/permissions';
+import { useSettings, canEditModule } from '@/lib/settings-context';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Plus, FlaskConical, Settings2 } from 'lucide-react';
@@ -13,6 +14,7 @@ import { Plus, FlaskConical, Settings2 } from 'lucide-react';
 export default function LabOrdersPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { settings } = useSettings();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -51,7 +53,7 @@ export default function LabOrdersPage() {
               <Button variant="outline" className="gap-2"><Settings2 className="w-4 h-4" />Manage Tests</Button>
             </Link>
           )}
-          {canManageLab(user?.role) && (
+          {canManageLab(user?.role) && canEditModule(user?.role, 'lab', settings.editPermissions) && (
             <Link href="/dashboard/lab/new">
               <Button className="gap-2 gradient-primary"><Plus className="w-4 h-4" />New Lab Order</Button>
             </Link>

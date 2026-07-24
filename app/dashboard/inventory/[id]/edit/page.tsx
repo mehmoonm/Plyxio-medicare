@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth-context';
 import { canManageInventory } from '@/lib/permissions';
+import { useSettings, canEditModule } from '@/lib/settings-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, Save, Trash2 } from 'lucide-react';
@@ -15,6 +16,7 @@ export default function EditInventoryItemPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuth();
+  const { settings } = useSettings();
   const [drug, setDrug] = useState<any>(null);
   const [item, setItem] = useState({ batchNo: '', expiryDate: '', quantityOnHand: 0, reorderLevel: 10, unitCost: 0, unitPrice: 0 });
   const [fetching, setFetching] = useState(true);
@@ -69,7 +71,7 @@ export default function EditInventoryItemPage() {
   if (!drug) return <div className="text-gray-500">Inventory item not found</div>;
 
   return (
-    <RoleGuard allowed={canManageInventory(user?.role)}>
+    <RoleGuard allowed={canManageInventory(user?.role) && canEditModule(user?.role, 'inventory', settings.editPermissions)}>
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
