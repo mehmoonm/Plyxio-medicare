@@ -6,7 +6,17 @@ import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Building2, Plus, CheckCircle2, Ban, Play } from 'lucide-react';
+import { Building2, Plus, CheckCircle2, Ban, Play, ChevronDown, ChevronUp } from 'lucide-react';
+import type { ModuleKey } from '@/lib/hospital-modules-context';
+
+const MODULE_LABELS: { key: ModuleKey; label: string }[] = [
+  { key: 'admissions', label: 'Admissions & Beds' },
+  { key: 'lab', label: 'Lab Orders' },
+  { key: 'radiology', label: 'Radiology' },
+  { key: 'inventory', label: 'Inventory & Pharmacy' },
+  { key: 'billing', label: 'Billing' },
+  { key: 'messaging', label: 'Patient Messaging' },
+];
 
 function slugify(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').slice(0, 40) || `hospital-${Date.now().toString().slice(-6)}`;
@@ -29,6 +39,15 @@ export default function PlatformAdminPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [addForm, setAddForm] = useState({ hospitalName: '', adminName: '', adminEmail: '', paymentMethod: 'CASH', alreadyPaid: true });
   const [saving, setSaving] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const toggleModule = async (hospital: any, key: ModuleKey) => {
+    setBusy(hospital.id);
+    const next = { ...(hospital.enabledModules || {}), [key]: !hospital.enabledModules?.[key] };
+    await supabase.from('Hospital').update({ enabledModules: next }).eq('id', hospital.id);
+    await load();
+    setBusy(null);
+  };
 
   const load = async () => {
     const { data } = await supabase.from('Hospital').select('*').order('createdAt', { ascending: false });
@@ -126,34 +145,66 @@ export default function PlatformAdminPage() {
           <p className="text-gray-400 p-6">No hospitals yet</p>
         ) : (
           <div className="divide-y divide-white/10">
-            {hospitals.map((h) => (
-              <div key={h.id} className="p-4 flex items-center justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="text-white font-medium truncate">{h.name}</p>
-                  <p className="text-xs text-gray-400">
-                    /{h.slug} • {h.pendingAdminEmail ? `Pending admin: ${h.pendingAdminEmail}` : `${h.paymentMethod || 'No payment method set'}`}
-                  </p>
+            {hospitals.map((h) => {
+              const enabledCount = MODULE_LABELS.filter((m) => h.enabledModules?.[m.key]).length;
+              return (
+                <div key={h.id}>
+                  <div className="p-4 flex items-center justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="text-white font-medium truncate">{h.name}</p>
+                      <p className="text-xs text-gray-400">
+                        /{h.slug} • {h.pendingAdminEmail ? `Pending admin: ${h.pendingAdminEmail}` : `${h.paymentMethod || 'No payment method set'}`}
+                        {' '}• {enabledCount} of {MODULE_LABELS.length} add-on modules
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <Badge className={STATUS_COLORS[h.subscriptionStatus] || 'bg-gray-100 text-gray-800'}>{h.subscriptionStatus?.replace('_', ' ')}</Badge>
+                      <button onClick={() => setExpandedId(expandedId === h.id ? null : h.id)} className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-gray-300" title="Manage modules">
+                        {expandedId === h.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      </button>
+                      {h.subscriptionStatus !== 'ACTIVE' && (
+                        <button onClick={() => updateStatus(h.id, 'ACTIVE')} disabled={busy === h.id} className="p-2 rounded-lg bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300" title="Approve / Activate">
+                          <CheckCircle2 className="w-4 h-4" />
+                        </button>
+                      )}
+                      {h.subscriptionStatus !== 'SUSPENDED' && h.subscriptionStatus === 'ACTIVE' && (
+                        <button onClick={() => updateStatus(h.id, 'SUSPENDED')} disabled={busy === h.id} className="p-2 rounded-lg bg-red-600/30 hover:bg-red-600/50 text-red-300" title="Suspend">
+                          <Ban className="w-4 h-4" />
+                        </button>
+                      )}
+                      {h.subscriptionStatus === 'SUSPENDED' && (
+                        <button onClick={() => updateStatus(h.id, 'ACTIVE')} disabled={busy === h.id} className="p-2 rounded-lg bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300" title="Reactivate">
+                          <Play className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {expandedId === h.id && (
+                    <div className="px-4 pb-4 bg-white/5">
+                      <p className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2 pt-2">Add-on Modules</p>
+                      <div className="space-y-2">
+                        {MODULE_LABELS.map(({ key, label }) => {
+                          const enabled = !!h.enabledModules?.[key];
+                          return (
+                            <div key={key} className="flex items-center justify-between bg-white/5 rounded-lg px-4 py-2.5">
+                              <span className="text-sm text-gray-200">{label}</span>
+                              <button
+                                onClick={() => toggleModule(h, key)}
+                                disabled={busy === h.id}
+                                className={`w-11 h-6 rounded-full transition-colors relative disabled:opacity-50 ${enabled ? 'bg-indigo-600' : 'bg-gray-500/50'}`}
+                              >
+                                <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${enabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <Badge className={STATUS_COLORS[h.subscriptionStatus] || 'bg-gray-100 text-gray-800'}>{h.subscriptionStatus?.replace('_', ' ')}</Badge>
-                  {h.subscriptionStatus !== 'ACTIVE' && (
-                    <button onClick={() => updateStatus(h.id, 'ACTIVE')} disabled={busy === h.id} className="p-2 rounded-lg bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300" title="Approve / Activate">
-                      <CheckCircle2 className="w-4 h-4" />
-                    </button>
-                  )}
-                  {h.subscriptionStatus !== 'SUSPENDED' && h.subscriptionStatus === 'ACTIVE' && (
-                    <button onClick={() => updateStatus(h.id, 'SUSPENDED')} disabled={busy === h.id} className="p-2 rounded-lg bg-red-600/30 hover:bg-red-600/50 text-red-300" title="Suspend">
-                      <Ban className="w-4 h-4" />
-                    </button>
-                  )}
-                  {h.subscriptionStatus === 'SUSPENDED' && (
-                    <button onClick={() => updateStatus(h.id, 'ACTIVE')} disabled={busy === h.id} className="p-2 rounded-lg bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300" title="Reactivate">
-                      <Play className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

@@ -6,13 +6,15 @@ import { useAuth } from './auth-context';
 
 export type ModuleKey = 'admissions' | 'lab' | 'radiology' | 'inventory' | 'billing' | 'messaging';
 
+// New hospitals start on the basic plan -- these paid add-on modules are
+// off until a platform admin enables them for a hospital's plan.
 const DEFAULT_MODULES: Record<ModuleKey, boolean> = {
-  admissions: true,
-  lab: true,
-  radiology: true,
-  inventory: true,
-  billing: true,
-  messaging: true,
+  admissions: false,
+  lab: false,
+  radiology: false,
+  inventory: false,
+  billing: false,
+  messaging: false,
 };
 
 interface ModulesContextType {

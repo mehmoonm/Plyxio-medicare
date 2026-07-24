@@ -249,30 +249,33 @@ export default function SettingsPage() {
           {isAdmin(user?.role) && (
             <div className="glass-card rounded-2xl p-6 space-y-4">
               <div>
-                <h2 className="text-xl font-bold text-white">Modules</h2>
-                <p className="text-sm text-slate-400 mt-1">Turn features on or off for your hospital. Disabled modules disappear from every staff member's sidebar.</p>
+                <h2 className="text-xl font-bold text-white">Your Plan</h2>
+                <p className="text-sm text-slate-400 mt-1">Add-on modules included in your hospital's plan. Contact PLYXIO to add more.</p>
               </div>
-              {moduleError && <div className="bg-red-500/20 border border-red-500/50 text-red-200 p-3 rounded-lg text-sm">{moduleError}</div>}
               <div className="space-y-2">
-                {MODULE_LIST.map(({ key, label, description, icon: Icon }) => (
-                  <div key={key} className="flex items-center justify-between bg-white/5 rounded-lg px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <Icon className="w-5 h-5 text-indigo-300 flex-shrink-0" />
-                      <div>
-                        <p className="text-white text-sm font-medium">{label}</p>
-                        <p className="text-xs text-slate-400">{description}</p>
+                {MODULE_LIST.map(({ key, label, description, icon: Icon }) => {
+                  const enabled = modules[key] === true;
+                  return (
+                    <div key={key} className={`flex items-center justify-between rounded-lg px-4 py-3 ${enabled ? 'bg-white/5' : 'bg-white/5 opacity-60'}`}>
+                      <div className="flex items-center gap-3">
+                        <Icon className={`w-5 h-5 flex-shrink-0 ${enabled ? 'text-indigo-300' : 'text-slate-500'}`} />
+                        <div>
+                          <p className="text-white text-sm font-medium">{label}</p>
+                          <p className="text-xs text-slate-400">{enabled ? description : 'Not included in your current plan'}</p>
+                        </div>
                       </div>
+                      {enabled ? (
+                        <span className="text-xs font-semibold text-emerald-300 bg-emerald-500/10 px-2.5 py-1 rounded-full flex-shrink-0">Included</span>
+                      ) : (
+                        <span className="text-xs font-semibold text-slate-400 bg-white/5 px-2.5 py-1 rounded-full flex-shrink-0">Add-on</span>
+                      )}
                     </div>
-                    <button
-                      onClick={() => toggleModule(key)}
-                      disabled={modulesLoading || moduleSaving === key}
-                      className={`w-11 h-6 rounded-full transition-colors relative flex-shrink-0 disabled:opacity-50 ${modules[key] !== false ? 'bg-indigo-600' : 'bg-gray-500/50'}`}
-                    >
-                      <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${modules[key] !== false ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
+              <p className="text-xs text-slate-500 pt-2 border-t border-white/10">
+                Want to add a module? Reach out to PLYXIO support to update your plan.
+              </p>
             </div>
           )}
         </div>
