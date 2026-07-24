@@ -50,6 +50,7 @@ const PAGE_DEFINITIONS: Record<PageKey, MenuItem> = {
   referrals: { href: '/dashboard/referrals', label: 'Referrals', icon: Share2 },
   medicalCertificates: { href: '/dashboard/medical-certificates', label: 'Medical Certificates', icon: FileCheck },
   queue: { href: '/dashboard/queue', label: 'Walk-in Queue', icon: Users },
+  attendance: { href: '/dashboard/attendance', label: 'Attendance & Leave', icon: Clock },
 };
 
 const adminMenuItems: MenuItem[] = [
@@ -64,6 +65,8 @@ const adminMenuItems: MenuItem[] = [
   { href: '/dashboard/medical-certificates', label: 'Medical Certificates', icon: FileCheck },
   { href: '/dashboard/queue', label: 'Walk-in Queue', icon: Users },
   { href: '/dashboard/feedback', label: 'Feedback', icon: MessageSquare },
+  { href: '/dashboard/staff-shifts', label: 'Staff Shifts', icon: Clock },
+  { href: '/dashboard/attendance', label: 'Attendance & Leave', icon: Clock },
   { href: '/dashboard/billing', label: 'Billing', icon: FileText, moduleKey: 'billing' },
   { href: '/dashboard/inventory', label: 'Inventory', icon: Package, moduleKey: 'inventory' },
   { href: '/dashboard/pharmacy', label: 'Pharmacy', icon: Pill, moduleKey: 'inventory' },
