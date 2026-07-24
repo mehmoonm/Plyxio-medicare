@@ -10,12 +10,14 @@ import type { DbPatient } from '@/lib/supabase/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Edit, Mail, MapPin, Heart, AlertCircle, Users, Stethoscope, FileText, Upload, Trash2, Download, Plus } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function PatientDetailPage() {
   const params = useParams<{ id: string }>();
   const { user } = useAuth();
   const [patient, setPatient] = useState<DbPatient | null>(null);
   const [encounters, setEncounters] = useState<any[]>([]);
+  const [vitalsHistory, setVitalsHistory] = useState<any[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
   const [allergies, setAllergies] = useState<any[]>([]);
   const [showAllergyForm, setShowAllergyForm] = useState(false);
@@ -60,12 +62,14 @@ export default function PatientDetailPage() {
 
   useEffect(() => {
     (async () => {
-      const [p, enc] = await Promise.all([
+      const [p, enc, vit] = await Promise.all([
         supabase.from('Patient').select('*').eq('id', params.id).single(),
         supabase.from('Encounter').select('id, createdAt, diagnosis, chiefComplaint, User(fullName)').eq('patientId', params.id).order('createdAt', { ascending: false }),
+        supabase.from('Vitals').select('*, Encounter!inner(patientId)').eq('Encounter.patientId', params.id).order('recordedAt', { ascending: true }),
       ]);
       setPatient(p.data as DbPatient);
       setEncounters(enc.data || []);
+      setVitalsHistory(vit.data || []);
       await loadDocuments();
       await loadAllergies();
       setLoading(false);
@@ -265,6 +269,67 @@ export default function PatientDetailPage() {
             <div><p className="text-slate-400 text-sm">Phone Number</p><p className="text-white font-medium">{patient.emergencyContactPhone || '—'}</p></div>
           </div>
         </div>
+
+        {vitalsHistory.length > 1 && (
+          <div className="pt-6 border-t border-white/10">
+            <h2 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
+              <Heart className="w-5 h-5 text-rose-400" />
+              Vitals Trends
+            </h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="bg-white/5 rounded-xl p-4">
+                <p className="text-xs text-slate-400 mb-2">Blood Pressure (mmHg)</p>
+                <ResponsiveContainer width="100%" height={180}>
+                  <LineChart data={vitalsHistory.map((v) => ({ date: new Date(v.recordedAt).toLocaleDateString('default', { month: 'short', day: 'numeric' }), sys: v.bloodPressureSys, dia: v.bloodPressureDia }))}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                    <XAxis dataKey="date" stroke="rgba(255,255,255,0.4)" fontSize={11} />
+                    <YAxis stroke="rgba(255,255,255,0.4)" fontSize={11} />
+                    <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff' }} />
+                    <Legend />
+                    <Line type="monotone" dataKey="sys" name="Systolic" stroke="#f87171" strokeWidth={2} dot={{ r: 3 }} />
+                    <Line type="monotone" dataKey="dia" name="Diastolic" stroke="#60a5fa" strokeWidth={2} dot={{ r: 3 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="bg-white/5 rounded-xl p-4">
+                <p className="text-xs text-slate-400 mb-2">Weight (kg)</p>
+                <ResponsiveContainer width="100%" height={180}>
+                  <LineChart data={vitalsHistory.filter((v) => v.weightKg != null).map((v) => ({ date: new Date(v.recordedAt).toLocaleDateString('default', { month: 'short', day: 'numeric' }), weight: v.weightKg }))}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                    <XAxis dataKey="date" stroke="rgba(255,255,255,0.4)" fontSize={11} />
+                    <YAxis stroke="rgba(255,255,255,0.4)" fontSize={11} domain={['auto', 'auto']} />
+                    <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff' }} />
+                    <Line type="monotone" dataKey="weight" stroke="#34d399" strokeWidth={2} dot={{ r: 3 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="bg-white/5 rounded-xl p-4">
+                <p className="text-xs text-slate-400 mb-2">Temperature (°C)</p>
+                <ResponsiveContainer width="100%" height={180}>
+                  <LineChart data={vitalsHistory.filter((v) => v.temperatureC != null).map((v) => ({ date: new Date(v.recordedAt).toLocaleDateString('default', { month: 'short', day: 'numeric' }), temp: v.temperatureC }))}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                    <XAxis dataKey="date" stroke="rgba(255,255,255,0.4)" fontSize={11} />
+                    <YAxis stroke="rgba(255,255,255,0.4)" fontSize={11} domain={['auto', 'auto']} />
+                    <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff' }} />
+                    <Line type="monotone" dataKey="temp" stroke="#fbbf24" strokeWidth={2} dot={{ r: 3 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="bg-white/5 rounded-xl p-4">
+                <p className="text-xs text-slate-400 mb-2">Pulse (bpm)</p>
+                <ResponsiveContainer width="100%" height={180}>
+                  <LineChart data={vitalsHistory.filter((v) => v.pulseBpm != null).map((v) => ({ date: new Date(v.recordedAt).toLocaleDateString('default', { month: 'short', day: 'numeric' }), pulse: v.pulseBpm }))}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                    <XAxis dataKey="date" stroke="rgba(255,255,255,0.4)" fontSize={11} />
+                    <YAxis stroke="rgba(255,255,255,0.4)" fontSize={11} domain={['auto', 'auto']} />
+                    <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff' }} />
+                    <Line type="monotone" dataKey="pulse" stroke="#a78bfa" strokeWidth={2} dot={{ r: 3 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="pt-6 border-t border-white/10">
           <h2 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">

@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth-context';
 import { useSettings } from '@/lib/settings-context';
-import { canManageBilling, canEditInvoice } from '@/lib/permissions';
+import { canManageBilling, canEditInvoice, canManageClaims } from '@/lib/permissions';
 import { generateInvoicePdf, printInvoicePdf } from '@/lib/pdf/invoice-pdf';
 import { currencySymbol } from '@/lib/currency';
 import { logAudit } from '@/lib/audit-log';
@@ -22,6 +22,10 @@ export default function InvoiceDetailPage() {
   const currency = currencySymbol(settings.currency);
   const [invoice, setInvoice] = useState<any>(null);
   const [payments, setPayments] = useState<any[]>([]);
+  const [claims, setClaims] = useState<any[]>([]);
+  const [showClaimForm, setShowClaimForm] = useState(false);
+  const [claimForm, setClaimForm] = useState({ insuranceProvider: '', claimNumber: '', claimedAmount: '' });
+  const [claimSaving, setClaimSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('CASH');
@@ -29,12 +33,14 @@ export default function InvoiceDetailPage() {
   const [error, setError] = useState('');
 
   const load = async () => {
-    const [inv, pay] = await Promise.all([
+    const [inv, pay, cl] = await Promise.all([
       supabase.from('Invoice').select('*, Patient(fullName, mrn), InvoiceItem(*)').eq('id', params.id).single(),
       supabase.from('Payment').select('*').eq('invoiceId', params.id).order('paidAt', { ascending: false }),
+      supabase.from('InsuranceClaim').select('*').eq('invoiceId', params.id).order('submittedAt', { ascending: false }),
     ]);
     setInvoice(inv.data);
     setPayments(pay.data || []);
+    setClaims(cl.data || []);
     setLoading(false);
   };
 
@@ -72,6 +78,33 @@ export default function InvoiceDetailPage() {
     setPaymentAmount('');
     await load();
     setBusy(false);
+  };
+
+  const submitClaim = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!claimForm.insuranceProvider.trim()) { setError('Insurance provider is required.'); return; }
+    setClaimSaving(true);
+    setError('');
+    const { error: insertError } = await supabase.from('InsuranceClaim').insert({
+      hospitalId: user?.hospitalId,
+      invoiceId: params.id,
+      insuranceProvider: claimForm.insuranceProvider.trim(),
+      claimNumber: claimForm.claimNumber || null,
+      claimedAmount: claimForm.claimedAmount ? Number(claimForm.claimedAmount) : Number(invoice.total),
+      status: 'SUBMITTED',
+    });
+    setClaimSaving(false);
+    if (insertError) { setError(insertError.message); return; }
+    setClaimForm({ insuranceProvider: '', claimNumber: '', claimedAmount: '' });
+    setShowClaimForm(false);
+    await load();
+  };
+
+  const updateClaimStatus = async (id: string, status: string, approvedAmount?: string) => {
+    const updates: any = { status, updatedAt: new Date().toISOString() };
+    if (approvedAmount !== undefined) updates.approvedAmount = approvedAmount ? Number(approvedAmount) : null;
+    await supabase.from('InsuranceClaim').update(updates).eq('id', id);
+    await load();
   };
 
   const buildPdfData = () => ({
@@ -178,6 +211,67 @@ export default function InvoiceDetailPage() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {canManageClaims(user?.role) && (
+          <div className="pt-4 border-t space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900">Insurance Claims</h3>
+              <Button size="sm" variant="outline" onClick={() => setShowClaimForm((v) => !v)}>Submit Claim</Button>
+            </div>
+
+            {showClaimForm && (
+              <form onSubmit={submitClaim} className="bg-gray-50 rounded-lg p-4 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <Input placeholder="Insurance provider" value={claimForm.insuranceProvider} onChange={(e) => setClaimForm({ ...claimForm, insuranceProvider: e.target.value })} />
+                  <Input placeholder="Claim number (optional)" value={claimForm.claimNumber} onChange={(e) => setClaimForm({ ...claimForm, claimNumber: e.target.value })} />
+                  <Input type="number" min={0} placeholder={`Claimed amount (default: total)`} value={claimForm.claimedAmount} onChange={(e) => setClaimForm({ ...claimForm, claimedAmount: e.target.value })} />
+                </div>
+                <div className="flex gap-2">
+                  <Button type="submit" size="sm" disabled={claimSaving}>{claimSaving ? 'Submitting...' : 'Submit'}</Button>
+                  <Button type="button" size="sm" variant="outline" onClick={() => setShowClaimForm(false)}>Cancel</Button>
+                </div>
+              </form>
+            )}
+
+            {claims.length === 0 ? (
+              <p className="text-sm text-gray-500">No claims submitted for this invoice yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {claims.map((c) => (
+                  <div key={c.id} className="bg-gray-50 rounded-lg p-3 space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <div>
+                        <p className="font-medium text-gray-900">{c.insuranceProvider}{c.claimNumber ? ` — ${c.claimNumber}` : ''}</p>
+                        <p className="text-xs text-gray-500">Claimed: {currency} {Number(c.claimedAmount || 0).toLocaleString()} • Submitted {new Date(c.submittedAt).toLocaleDateString()}</p>
+                      </div>
+                      <Badge className={
+                        c.status === 'PAID' ? 'bg-green-100 text-green-800' :
+                        c.status === 'APPROVED' ? 'bg-blue-100 text-blue-800' :
+                        c.status === 'REJECTED' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'
+                      }>{c.status.replace('_', ' ')}</Badge>
+                    </div>
+                    {c.status !== 'REJECTED' && c.status !== 'PAID' && (
+                      <div className="flex flex-wrap gap-2">
+                        {c.status === 'SUBMITTED' && (
+                          <Button size="sm" variant="outline" onClick={() => updateClaimStatus(c.id, 'UNDER_REVIEW')}>Mark Under Review</Button>
+                        )}
+                        {(c.status === 'SUBMITTED' || c.status === 'UNDER_REVIEW') && (
+                          <>
+                            <Button size="sm" variant="outline" onClick={() => updateClaimStatus(c.id, 'APPROVED', String(c.claimedAmount))}>Approve</Button>
+                            <Button size="sm" variant="outline" className="text-red-600 border-red-300" onClick={() => updateClaimStatus(c.id, 'REJECTED')}>Reject</Button>
+                          </>
+                        )}
+                        {c.status === 'APPROVED' && (
+                          <Button size="sm" onClick={() => updateClaimStatus(c.id, 'PAID')}>Mark Paid by Insurer</Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

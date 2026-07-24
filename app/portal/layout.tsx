@@ -7,13 +7,14 @@ import { PatientAuthProvider, usePatientAuth } from '@/lib/patient-auth-context'
 import { supabase } from '@/lib/supabase/client';
 import { useAppointmentReminders, type UpcomingAppointmentReminder } from '@/lib/use-appointment-reminders';
 import { NotificationPermissionBanner } from '@/components/notification-permission-banner';
-import { LayoutDashboard, Calendar, Pill, FileText, Receipt, MessageCircle, LogOut, Menu } from 'lucide-react';
+import { LayoutDashboard, Calendar, Pill, FileText, Receipt, MessageCircle, LogOut, Menu, FileCheck } from 'lucide-react';
 
 const menuItems = [
   { href: '/portal', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/portal/appointments', label: 'Appointments', icon: Calendar },
   { href: '/portal/records', label: 'Medical Records', icon: FileText },
   { href: '/portal/prescriptions', label: 'Prescriptions', icon: Pill },
+  { href: '/portal/certificates', label: 'Certificates', icon: FileCheck },
   { href: '/portal/billing', label: 'Billing', icon: Receipt },
   { href: '/portal/messages', label: 'Messages', icon: MessageCircle },
 ];

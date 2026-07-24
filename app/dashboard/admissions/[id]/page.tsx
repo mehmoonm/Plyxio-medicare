@@ -10,7 +10,8 @@ import { useSettings, canEditModule } from '@/lib/settings-context';
 import { logAudit } from '@/lib/audit-log';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, LogOut, NotebookPen } from 'lucide-react';
+import { ArrowLeft, LogOut, NotebookPen, Download, Printer } from 'lucide-react';
+import { generateDischargeSummaryPdf, printDischargeSummaryPdf } from '@/lib/pdf/discharge-summary-pdf';
 
 export default function AdmissionDetailPage() {
   const params = useParams<{ id: string }>();
@@ -89,6 +90,25 @@ export default function AdmissionDetailPage() {
   if (loading) return <p className="text-gray-400">Loading…</p>;
   if (!admission) return <p className="text-gray-400">Admission not found</p>;
 
+  const buildDischargePdfData = () => ({
+    hospitalName: settings.hospitalName,
+    hospitalLogo: settings.logo,
+    hospitalPhone: settings.phone,
+    hospitalEmail: settings.email,
+    hospitalAddress: settings.address,
+    hospitalCity: settings.city,
+    patientName: admission.Patient?.fullName || 'Unknown',
+    patientMrn: admission.Patient?.mrn || '',
+    wardName: admission.Bed?.Ward?.name,
+    bedNumber: admission.Bed?.bedNumber,
+    admittedAt: admission.admittedAt,
+    dischargedAt: admission.dischargedAt,
+    admittingDoctor: admission.User?.fullName,
+    dischargeDiagnosis: admission.dischargeDiagnosis,
+    dischargeSummary: admission.dischargeSummary,
+    followUpInstructions: admission.followUpInstructions,
+  });
+
   return (
     <div className="space-y-6">
       <Link href="/dashboard/admissions">
@@ -102,7 +122,15 @@ export default function AdmissionDetailPage() {
             <p className="text-gray-400 mt-1">MRN: {admission.Patient?.mrn} • {admission.Bed?.Ward?.name} Bed {admission.Bed?.bedNumber}</p>
             <p className="text-gray-400 text-sm mt-1">Attending: Dr. {admission.User?.fullName} ({admission.User?.specialty})</p>
           </div>
-          <Badge className={admission.status === 'ADMITTED' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}>{admission.status}</Badge>
+          <div className="flex flex-col items-end gap-2">
+            <Badge className={admission.status === 'ADMITTED' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}>{admission.status}</Badge>
+            {admission.status === 'DISCHARGED' && (
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => printDischargeSummaryPdf(buildDischargePdfData())} className="gap-1"><Printer className="w-3.5 h-3.5" />Print</Button>
+                <Button size="sm" variant="outline" onClick={() => generateDischargeSummaryPdf(buildDischargePdfData())} className="gap-1"><Download className="w-3.5 h-3.5" />Discharge Summary</Button>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="pt-4 border-t border-white/10 grid grid-cols-2 gap-4 text-sm">

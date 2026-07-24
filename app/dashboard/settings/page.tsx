@@ -35,6 +35,8 @@ const PAGE_LABELS: Record<PageKey, string> = {
   messages: 'Messages',
   doctors: 'Doctors',
   finances: 'Finances',
+  referrals: 'Referrals',
+  medicalCertificates: 'Medical Certificates',
 };
 
 const EDIT_MODULE_LABELS: Record<EditModule, string> = {

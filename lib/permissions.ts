@@ -93,7 +93,20 @@ export function canManageDepartments(role?: Role | null) {
   return isAdmin(role);
 }
 
-// Matches the DB's payroll_admin_write/expense_admin_all policies
+// Matches the DB's referral_write policy
+export function canManageReferrals(role?: Role | null) {
+  return !!role && [...ADMIN, 'DOCTOR'].includes(role);
+}
+
+// Matches the DB's claim_write policy
+export function canManageClaims(role?: Role | null) {
+  return !!role && [...ADMIN, 'BILLING_CLERK'].includes(role);
+}
+
+// Matches the DB's medcert_write policy
+export function canManageMedicalCertificates(role?: Role | null) {
+  return !!role && [...ADMIN, 'DOCTOR'].includes(role);
+}
 export function canManageFinances(role?: Role | null) {
   return !!role && [...ADMIN, 'ACCOUNTANT'].includes(role);
 }

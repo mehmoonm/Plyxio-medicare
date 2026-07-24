@@ -23,6 +23,8 @@ import {
   Building2,
   Wallet,
   Clock,
+  Share2,
+  FileCheck,
 } from 'lucide-react';
 import { useSettings, DEFAULT_ROLE_PAGES, type ShareableRole, type PageKey } from '@/lib/settings-context';
 import { useModules, type ModuleKey } from '@/lib/hospital-modules-context';
@@ -44,6 +46,8 @@ const PAGE_DEFINITIONS: Record<PageKey, MenuItem> = {
   messages: { href: '/dashboard/messages', label: 'Messages', icon: MessageCircle, moduleKey: 'messaging' },
   doctors: { href: '/dashboard/doctors', label: 'Doctors', icon: Stethoscope },
   finances: { href: '/dashboard/finances', label: 'Finances', icon: Wallet },
+  referrals: { href: '/dashboard/referrals', label: 'Referrals', icon: Share2 },
+  medicalCertificates: { href: '/dashboard/medical-certificates', label: 'Medical Certificates', icon: FileCheck },
 };
 
 const adminMenuItems: MenuItem[] = [
@@ -54,6 +58,8 @@ const adminMenuItems: MenuItem[] = [
   { href: '/dashboard/lab', label: 'Lab Orders', icon: FlaskConical, moduleKey: 'lab' },
   { href: '/dashboard/radiology', label: 'Radiology', icon: Scan, moduleKey: 'radiology' },
   { href: '/dashboard/doctors', label: 'Doctors', icon: Stethoscope },
+  { href: '/dashboard/referrals', label: 'Referrals', icon: Share2 },
+  { href: '/dashboard/medical-certificates', label: 'Medical Certificates', icon: FileCheck },
   { href: '/dashboard/billing', label: 'Billing', icon: FileText, moduleKey: 'billing' },
   { href: '/dashboard/inventory', label: 'Inventory', icon: Package, moduleKey: 'inventory' },
   { href: '/dashboard/pharmacy', label: 'Pharmacy', icon: Pill, moduleKey: 'inventory' },
