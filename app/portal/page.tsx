@@ -5,12 +5,22 @@ import Link from 'next/link';
 import { usePatientAuth } from '@/lib/patient-auth-context';
 import { supabase } from '@/lib/supabase/client';
 import { Calendar, Receipt, Pill } from 'lucide-react';
+import { currencySymbol } from '@/lib/currency';
 
 export default function PortalDashboard() {
   const { patient } = usePatientAuth();
   const [upcoming, setUpcoming] = useState<any[]>([]);
   const [balance, setBalance] = useState(0);
   const [rxCount, setRxCount] = useState(0);
+  const [currency, setCurrency] = useState('Rs');
+
+  useEffect(() => {
+    if (!patient?.hospitalId) return;
+    (async () => {
+      const { data } = await supabase.from('Hospital').select('currency').eq('id', patient.hospitalId).single();
+      if (data?.currency) setCurrency(currencySymbol(data.currency));
+    })();
+  }, [patient?.hospitalId]);
 
   useEffect(() => {
     if (!patient) return;
@@ -39,7 +49,7 @@ export default function PortalDashboard() {
         <Link href="/portal/billing" className="glass-card rounded-2xl p-6 hover:border-white/40 transition-all">
           <Receipt className="w-8 h-8 text-amber-400 mb-3" />
           <p className="text-gray-300 text-sm">Outstanding Balance</p>
-          <p className="text-3xl font-bold text-white mt-1">Rs {balance.toLocaleString()}</p>
+          <p className="text-3xl font-bold text-white mt-1">{currency} {balance.toLocaleString()}</p>
         </Link>
         <Link href="/portal/prescriptions" className="glass-card rounded-2xl p-6 hover:border-white/40 transition-all">
           <Pill className="w-8 h-8 text-emerald-400 mb-3" />

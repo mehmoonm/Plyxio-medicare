@@ -7,9 +7,13 @@ import { StatCard } from '@/components/dashboard/stat-card';
 import { RecentAppointments } from '@/components/dashboard/recent-appointments';
 import { UpcomingAppointments } from '@/components/dashboard/upcoming-appointments';
 import { Users, Calendar, FileText, Package, TrendingUp } from 'lucide-react';
+import { useSettings } from '@/lib/settings-context';
+import { currencySymbol } from '@/lib/currency';
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { settings } = useSettings();
+  const currency = currencySymbol(settings.currency);
   const [stats, setStats] = useState({
     totalPatients: 0,
     totalAppointments: 0,
@@ -73,7 +77,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             <StatCard title="Total Patients" value={stats.totalPatients} icon={Users} color="from-indigo-600 to-indigo-500" href="/dashboard/patients" />
             <StatCard title="Total Appointments" value={stats.totalAppointments} icon={Calendar} color="from-cyan-600 to-cyan-500" href="/dashboard/appointments" />
-            <StatCard title="Total Revenue" value={`Rs ${stats.totalRevenue.toLocaleString()}`} icon={TrendingUp} color="from-purple-600 to-purple-500" href="/dashboard/billing" />
+            <StatCard title="Total Revenue" value={`${currency} ${stats.totalRevenue.toLocaleString()}`} icon={TrendingUp} color="from-purple-600 to-purple-500" href="/dashboard/billing" />
             {isAdmin && (
               <>
                 <StatCard title="Total Staff" value={stats.totalStaff} icon={Users} color="from-orange-600 to-orange-500" href="/dashboard/staff" />

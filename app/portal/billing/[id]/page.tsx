@@ -49,6 +49,7 @@ export default function PortalInvoiceDetailPage() {
   }, [patient?.hospitalId]);
 
   const balance = invoice ? Number(invoice.total) - Number(invoice.amountPaid) : 0;
+  const currency = currencySymbol(hospital?.currency);
 
   const handlePay = async () => {
     if (!invoice) return;
@@ -132,16 +133,16 @@ export default function PortalInvoiceDetailPage() {
               <tr key={it.id} className="border-b border-white/5">
                 <td className="py-2">{it.description}</td>
                 <td className="py-2 text-gray-400">{it.category || '—'}</td>
-                <td className="py-2 text-right">Rs {Number(it.amount).toLocaleString()}</td>
+                <td className="py-2 text-right">{currency} {Number(it.amount).toLocaleString()}</td>
               </tr>
             ))}
           </tbody>
         </table>
 
         <div className="bg-white/5 rounded-lg p-4 space-y-1 text-sm text-gray-200 max-w-xs ml-auto">
-          <div className="flex justify-between"><span>Total</span><span>Rs {Number(invoice.total).toLocaleString()}</span></div>
-          <div className="flex justify-between text-green-400"><span>Paid</span><span>Rs {Number(invoice.amountPaid).toLocaleString()}</span></div>
-          <div className="flex justify-between font-bold text-white pt-2 border-t border-white/10"><span>Balance</span><span>Rs {balance.toLocaleString()}</span></div>
+          <div className="flex justify-between"><span>Total</span><span>{currency} {Number(invoice.total).toLocaleString()}</span></div>
+          <div className="flex justify-between text-green-400"><span>Paid</span><span>{currency} {Number(invoice.amountPaid).toLocaleString()}</span></div>
+          <div className="flex justify-between font-bold text-white pt-2 border-t border-white/10"><span>Balance</span><span>{currency} {balance.toLocaleString()}</span></div>
         </div>
 
         {balance > 0 && !paid && (
@@ -159,7 +160,7 @@ export default function PortalInvoiceDetailPage() {
               ))}
             </div>
             <Button onClick={handlePay} disabled={busy} className="gap-2 gradient-primary">
-              <CreditCard className="w-4 h-4" />{busy ? 'Processing...' : `Pay Rs ${balance.toLocaleString()}`}
+              <CreditCard className="w-4 h-4" />{busy ? 'Processing...' : `Pay ${currency} ${balance.toLocaleString()}`}
             </Button>
           </div>
         )}

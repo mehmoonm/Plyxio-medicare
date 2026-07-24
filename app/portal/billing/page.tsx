@@ -5,11 +5,21 @@ import Link from 'next/link';
 import { usePatientAuth } from '@/lib/patient-auth-context';
 import { supabase } from '@/lib/supabase/client';
 import { Badge } from '@/components/ui/badge';
+import { currencySymbol } from '@/lib/currency';
 
 export default function PortalBillingPage() {
   const { patient } = usePatientAuth();
+  const [currency, setCurrency] = useState('Rs');
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!patient?.hospitalId) return;
+    (async () => {
+      const { data } = await supabase.from('Hospital').select('currency').eq('id', patient.hospitalId).single();
+      if (data?.currency) setCurrency(currencySymbol(data.currency));
+    })();
+  }, [patient?.hospitalId]);
 
   useEffect(() => {
     if (!patient) return;
@@ -47,7 +57,7 @@ export default function PortalBillingPage() {
                   <p className="text-xs text-gray-400">{new Date(inv.createdAt).toLocaleDateString()}</p>
                 </div>
                 <div className="flex items-center gap-4">
-                  <p className="text-white font-semibold">Rs {Number(inv.total).toLocaleString()}</p>
+                  <p className="text-white font-semibold">{currency} {Number(inv.total).toLocaleString()}</p>
                   <Badge className={getStatusColor(inv.status)}>{inv.status.replace('_', ' ')}</Badge>
                 </div>
               </Link>

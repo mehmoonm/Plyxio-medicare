@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth-context';
 import { canManageBilling } from '@/lib/permissions';
+import { useSettings } from '@/lib/settings-context';
+import { currencySymbol } from '@/lib/currency';
 import type { DbInvoice } from '@/lib/supabase/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -16,6 +18,8 @@ import { Search, DollarSign, Plus } from 'lucide-react';
 export default function BillingPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { settings } = useSettings();
+  const currency = currencySymbol(settings.currency);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [invoices, setInvoices] = useState<DbInvoice[]>([]);
@@ -65,8 +69,8 @@ export default function BillingPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-gray-500 text-sm">Total Revenue</p><p className="text-2xl font-bold text-gray-900 mt-2">Rs {totalRevenue.toLocaleString()}</p></div><DollarSign className="w-8 h-8 text-green-500" /></div></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-gray-500 text-sm">Pending Payment</p><p className="text-2xl font-bold text-gray-900 mt-2">Rs {totalPending.toLocaleString()}</p></div><DollarSign className="w-8 h-8 text-yellow-500" /></div></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-gray-500 text-sm">Total Revenue</p><p className="text-2xl font-bold text-gray-900 mt-2">{currency} {totalRevenue.toLocaleString()}</p></div><DollarSign className="w-8 h-8 text-green-500" /></div></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-gray-500 text-sm">Pending Payment</p><p className="text-2xl font-bold text-gray-900 mt-2">{currency} {totalPending.toLocaleString()}</p></div><DollarSign className="w-8 h-8 text-yellow-500" /></div></CardContent></Card>
         <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-gray-500 text-sm">Total Invoices</p><p className="text-2xl font-bold text-gray-900 mt-2">{invoices.length}</p></div><DollarSign className="w-8 h-8 text-blue-500" /></div></CardContent></Card>
       </div>
 
@@ -106,8 +110,8 @@ export default function BillingPage() {
                     <tr key={inv.id} onClick={() => router.push(`/dashboard/billing/${inv.id}`)} className="border-b hover:bg-gray-50 cursor-pointer">
                       <td className="py-3 px-4 font-medium text-gray-900">{inv.Patient?.fullName || 'Unknown'}</td>
                       <td className="py-3 px-4 text-gray-600 text-sm">{inv.invoiceNo}</td>
-                      <td className="py-3 px-4 font-semibold text-gray-900">Rs {Number(inv.total).toLocaleString()}</td>
-                      <td className="py-3 px-4 text-gray-600 text-sm">Rs {Number(inv.amountPaid).toLocaleString()}</td>
+                      <td className="py-3 px-4 font-semibold text-gray-900">{currency} {Number(inv.total).toLocaleString()}</td>
+                      <td className="py-3 px-4 text-gray-600 text-sm">{currency} {Number(inv.amountPaid).toLocaleString()}</td>
                       <td className="py-3 px-4"><Badge className={getStatusColor(inv.status)}>{inv.status.replace('_', ' ')}</Badge></td>
                     </tr>
                   ))

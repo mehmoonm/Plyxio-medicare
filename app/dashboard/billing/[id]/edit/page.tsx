@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth-context';
 import { useSettings } from '@/lib/settings-context';
+import { currencySymbol } from '@/lib/currency';
 import { canEditInvoice } from '@/lib/permissions';
 import { logAudit } from '@/lib/audit-log';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,7 @@ export default function EditInvoicePage() {
   const router = useRouter();
   const { user } = useAuth();
   const { settings } = useSettings();
+  const currency = currencySymbol(settings.currency);
   const [invoice, setInvoice] = useState<any>(null);
   const [items, setItems] = useState<LineItem[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
@@ -149,7 +151,7 @@ export default function EditInvoicePage() {
           {error && <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg text-sm">{error}</div>}
 
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
-            Already paid: Rs {Number(invoice.amountPaid).toLocaleString()}. Editing totals won't change payments already recorded.
+            Already paid: {currency} {Number(invoice.amountPaid).toLocaleString()}. Editing totals won't change payments already recorded.
           </div>
 
           <div className="space-y-3">
@@ -194,10 +196,10 @@ export default function EditInvoicePage() {
           </div>
 
           <div className="bg-gray-50 rounded-lg p-4 space-y-1 text-sm">
-            <div className="flex justify-between"><span>Subtotal</span><span>Rs {subtotal.toLocaleString()}</span></div>
-            <div className="flex justify-between"><span>Discount</span><span>-Rs {discount.toLocaleString()}</span></div>
-            <div className="flex justify-between"><span>Tax</span><span>+Rs {tax.toLocaleString()}</span></div>
-            <div className="flex justify-between font-bold text-base pt-2 border-t"><span>Total</span><span>Rs {total.toLocaleString()}</span></div>
+            <div className="flex justify-between"><span>Subtotal</span><span>{currency} {subtotal.toLocaleString()}</span></div>
+            <div className="flex justify-between"><span>Discount</span><span>-{currency} {discount.toLocaleString()}</span></div>
+            <div className="flex justify-between"><span>{settings.taxLabel}</span><span>+{currency} {tax.toLocaleString()}</span></div>
+            <div className="flex justify-between font-bold text-base pt-2 border-t"><span>Total</span><span>{currency} {total.toLocaleString()}</span></div>
           </div>
 
           <Button type="submit" disabled={saving} className="gap-2">

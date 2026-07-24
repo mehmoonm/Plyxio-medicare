@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, Save, Plus, Trash2, Wand2 } from 'lucide-react';
 import { canManageBilling } from '@/lib/permissions';
+import { useSettings } from '@/lib/settings-context';
+import { currencySymbol } from '@/lib/currency';
 import { RoleGuard } from '@/components/dashboard/role-guard';
 import { QuickAddPatientModal } from '@/components/dashboard/quick-add-patient-modal';
 
@@ -35,6 +37,8 @@ interface Suggestion {
 export default function NewInvoicePage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { settings } = useSettings();
+  const currency = currencySymbol(settings.currency);
   const [patients, setPatients] = useState<DbPatient[]>([]);
   const [patientId, setPatientId] = useState('');
   const [showQuickAdd, setShowQuickAdd] = useState(false);
@@ -262,7 +266,7 @@ export default function NewInvoicePage() {
                         <input type="checkbox" checked={selectedSuggestions.has(s.key)} onChange={() => toggleSuggestion(s.key)} className="w-4 h-4" />
                         {s.description}
                       </span>
-                      <span className="text-sm font-semibold text-gray-900">Rs {s.amount.toLocaleString()}</span>
+                      <span className="text-sm font-semibold text-gray-900">{currency} {s.amount.toLocaleString()}</span>
                     </label>
                   ))}
                 </div>
@@ -316,10 +320,10 @@ export default function NewInvoicePage() {
         </div>
 
         <div className="bg-gray-50 rounded-lg p-4 space-y-1 text-sm">
-          <div className="flex justify-between"><span>Subtotal</span><span>Rs {subtotal.toLocaleString()}</span></div>
-          <div className="flex justify-between"><span>Discount</span><span>-Rs {discount.toLocaleString()}</span></div>
-          <div className="flex justify-between"><span>Tax</span><span>+Rs {tax.toLocaleString()}</span></div>
-          <div className="flex justify-between font-bold text-base pt-2 border-t"><span>Total</span><span>Rs {total.toLocaleString()}</span></div>
+          <div className="flex justify-between"><span>Subtotal</span><span>{currency} {subtotal.toLocaleString()}</span></div>
+          <div className="flex justify-between"><span>Discount</span><span>-{currency} {discount.toLocaleString()}</span></div>
+          <div className="flex justify-between"><span>{settings.taxLabel}</span><span>+{currency} {tax.toLocaleString()}</span></div>
+          <div className="flex justify-between font-bold text-base pt-2 border-t"><span>Total</span><span>{currency} {total.toLocaleString()}</span></div>
         </div>
 
         <Button type="submit" disabled={loading} className="gap-2">

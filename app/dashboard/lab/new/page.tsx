@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Save, Plus } from 'lucide-react';
 import { canManageLab } from '@/lib/permissions';
 import { useSettings, canEditModule } from '@/lib/settings-context';
+import { currencySymbol } from '@/lib/currency';
 import { RoleGuard } from '@/components/dashboard/role-guard';
 import { QuickAddPatientModal } from '@/components/dashboard/quick-add-patient-modal';
 
@@ -16,6 +17,7 @@ export default function NewLabOrderPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { settings } = useSettings();
+  const currency = currencySymbol(settings.currency);
   const [patients, setPatients] = useState<any[]>([]);
   const [tests, setTests] = useState<any[]>([]);
   const [patientId, setPatientId] = useState('');
@@ -123,7 +125,7 @@ export default function NewLabOrderPage() {
                     <p className="text-xs text-gray-400">{t.sampleType} {t.normalRange ? `• Normal: ${t.normalRange}` : ''}</p>
                   </div>
                 </div>
-                {t.price && <span className="text-xs text-gray-400">Rs {Number(t.price).toLocaleString()}</span>}
+                {t.price && <span className="text-xs text-gray-400">{currency} {Number(t.price).toLocaleString()}</span>}
               </label>
             ))}
           </div>

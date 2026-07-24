@@ -19,6 +19,7 @@ export default function InvoiceDetailPage() {
   const params = useParams<{ id: string }>();
   const { user } = useAuth();
   const { settings } = useSettings();
+  const currency = currencySymbol(settings.currency);
   const [invoice, setInvoice] = useState<any>(null);
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -150,20 +151,20 @@ export default function InvoiceDetailPage() {
                 <td className="py-2">{it.description}</td>
                 <td className="py-2 text-gray-500">{it.category || '—'}</td>
                 <td className="py-2">{it.quantity}</td>
-                <td className="py-2">Rs {Number(it.unitPrice).toLocaleString()}</td>
-                <td className="py-2 text-right">Rs {Number(it.amount).toLocaleString()}</td>
+                <td className="py-2">{currency} {Number(it.unitPrice).toLocaleString()}</td>
+                <td className="py-2 text-right">{currency} {Number(it.amount).toLocaleString()}</td>
               </tr>
             ))}
           </tbody>
         </table>
 
         <div className="bg-gray-50 rounded-lg p-4 space-y-1 text-sm ml-auto max-w-xs">
-          <div className="flex justify-between"><span>Subtotal</span><span>Rs {Number(invoice.subtotal).toLocaleString()}</span></div>
-          <div className="flex justify-between"><span>Discount</span><span>-Rs {Number(invoice.discount).toLocaleString()}</span></div>
-          <div className="flex justify-between"><span>Tax</span><span>+Rs {Number(invoice.tax).toLocaleString()}</span></div>
-          <div className="flex justify-between font-bold pt-2 border-t"><span>Total</span><span>Rs {Number(invoice.total).toLocaleString()}</span></div>
-          <div className="flex justify-between text-green-700"><span>Paid</span><span>Rs {Number(invoice.amountPaid).toLocaleString()}</span></div>
-          <div className="flex justify-between font-bold text-red-700"><span>Balance</span><span>Rs {balance.toLocaleString()}</span></div>
+          <div className="flex justify-between"><span>Subtotal</span><span>{currency} {Number(invoice.subtotal).toLocaleString()}</span></div>
+          <div className="flex justify-between"><span>Discount</span><span>-{currency} {Number(invoice.discount).toLocaleString()}</span></div>
+          <div className="flex justify-between"><span>{settings.taxLabel}</span><span>+{currency} {Number(invoice.tax).toLocaleString()}</span></div>
+          <div className="flex justify-between font-bold pt-2 border-t"><span>Total</span><span>{currency} {Number(invoice.total).toLocaleString()}</span></div>
+          <div className="flex justify-between text-green-700"><span>Paid</span><span>{currency} {Number(invoice.amountPaid).toLocaleString()}</span></div>
+          <div className="flex justify-between font-bold text-red-700"><span>Balance</span><span>{currency} {balance.toLocaleString()}</span></div>
         </div>
 
         {payments.length > 0 && (
@@ -173,7 +174,7 @@ export default function InvoiceDetailPage() {
               {payments.map((p) => (
                 <div key={p.id} className="flex justify-between text-sm text-gray-600 bg-gray-50 rounded-lg px-3 py-2">
                   <span>{new Date(p.paidAt).toLocaleString()} — {p.method}</span>
-                  <span className="font-semibold">Rs {Number(p.amount).toLocaleString()}</span>
+                  <span className="font-semibold">{currency} {Number(p.amount).toLocaleString()}</span>
                 </div>
               ))}
             </div>
